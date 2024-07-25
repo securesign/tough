@@ -1,0 +1,17 @@
+FROM registry.access.redhat.com/ubi9/ubi:latest
+
+USER root
+
+ARG RUST_VERSION="1.79.0"
+
+run dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
+
+ENV PATH "$PATH:/root/.cargo/bin"
+
+RUN cargo install --force --locked tuftool
+
+RUN mkdir /share
+
+ENTRYPOINT ["tuftool"]

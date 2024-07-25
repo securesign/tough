@@ -12,6 +12,7 @@ pub(crate) type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
+#[allow(dead_code)]
 pub(crate) enum Error {
     #[snafu(display("Failed to clone repository: {}", source))]
     CloneRepository {
