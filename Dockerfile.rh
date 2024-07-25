@@ -6,6 +6,8 @@ run dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzi
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
 
+ENV PATH "$PATH:/root/.cargo/bin"
+
 RUN cargo install --force --locked tuftool
 
 RUN mkdir /share
