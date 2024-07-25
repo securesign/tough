@@ -22,9 +22,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhtas-tenant/cli/tuftool:{{revision}}
+    value: quay.io/securesign/cli-tuftool:{{revision}}
   - name: dockerfile
-    value: ./tuftool/Dockerfile
+    value: ./Dockerfile.rh
   pipelineSpec:
     finally:
     - name: show-sbom
