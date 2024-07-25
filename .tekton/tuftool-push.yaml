@@ -24,7 +24,7 @@ spec:
   - name: output-image
     value: quay.io/securesign/cli-tuftool:{{revision}}
   - name: dockerfile
-    value: Dockerfile.rh
+    value: ./Dockerfile.rh
   pipelineSpec:
     finally:
     - name: show-sbom
