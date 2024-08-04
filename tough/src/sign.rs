@@ -14,8 +14,6 @@ use ring::signature::{EcdsaKeyPair, Ed25519KeyPair, KeyPair, RsaKeyPair};
 use snafu::ResultExt;
 use std::collections::HashMap;
 use std::error::Error;
-// use openssl::rsa::Rsa;
-// use openssl::pkey::PKey;
 use std::str;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 /// This trait must be implemented for each type of key with which you will
