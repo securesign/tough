@@ -14,9 +14,10 @@ use ring::signature::{EcdsaKeyPair, Ed25519KeyPair, KeyPair, RsaKeyPair};
 use snafu::ResultExt;
 use std::collections::HashMap;
 use std::error::Error;
-use openssl::rsa::Rsa;
-use openssl::pkey::PKey;
+// use openssl::rsa::Rsa;
+// use openssl::pkey::PKey;
 use std::str;
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 /// This trait must be implemented for each type of key with which you will
 /// sign things.
 #[async_trait]
@@ -167,12 +168,18 @@ impl Sign for SignKeyPair {
 /// Returns the decrypted key in PKCS8 format.
 pub fn decrypt_key(encrypted_key: &[u8], password: &str) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
 
-    let pem_str = str::from_utf8(encrypted_key)?;
-    let rsa = Rsa::private_key_from_pem_passphrase(pem_str.as_bytes(), password.as_bytes())?;
-
-    let pkey = PKey::from_rsa(rsa)?;
-    let pkcs8 = pkey.private_key_to_pem_pkcs8()?;
-    Ok(pkcs8)
+    let pem_str = std::str::from_utf8(encrypted_key)?;
+    let pem = pem::parse(pem_str)?;
+    let encrypted_private_key_document = pkcs8::EncryptedPrivateKeyDocument::from_der(pem.contents())?;
+    let decrypted_private_key_document = encrypted_private_key_document.decrypt(password.as_bytes())?;
+    let decrypted_key_bytes: Vec<u8> = decrypted_private_key_document.as_ref().to_vec();
+    let decrypted_key_base64 = STANDARD.encode(&decrypted_key_bytes);
+    let pem_key = format!(
+        "-----BEGIN PRIVATE KEY-----\n{}\n-----END PRIVATE KEY-----",
+        decrypted_key_base64
+    );
+    let pem_key_bytes = pem_key.as_bytes().to_vec();
+    Ok(pem_key_bytes)
 }
 
 /// Parses a supplied keypair and if it is recognized, returns an object that
