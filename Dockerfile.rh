@@ -10,8 +10,21 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --defa
 
 ENV PATH "$PATH:/root/.cargo/bin"
 
-RUN cargo install --force --locked tuftool
+RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "i686" ]; then \
+	cargo install --force --locked tuftool; \
+else \
+	echo "Unsupported architecture: $(uname -m)"; \
+	exit 1; \
+fi
 
 RUN mkdir /share
 
 ENTRYPOINT ["tuftool"]
+
+LABEL description ="Tuftool is a Rust command-line utility for generating and signing TUF repositories"
+LABEL io.k8s.description="Tuftool is a Rust command-line utility for generating and signing TUF repositories"
+LABEL io.k8s.display-name="Tuftool container image for Red Hat Trusted Artifact Signer"
+LABEL io.openshift.tags="Tuftool Trusted Artifact Signer"
+LABEL summary="Provides the Tuftool binary for generating and signing TUF repositories"
+LABEL com.redhat.component="tuftool"
+LABEL name="tuftool"
