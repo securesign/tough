@@ -9,13 +9,13 @@ use crate::sign::SignKeyPair::ECDSA;
 use crate::sign::SignKeyPair::ED25519;
 use crate::sign::SignKeyPair::RSA;
 use async_trait::async_trait;
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use ring::rand::{self, SecureRandom};
 use ring::signature::{EcdsaKeyPair, Ed25519KeyPair, KeyPair, RsaKeyPair};
 use snafu::ResultExt;
 use std::collections::HashMap;
 use std::error::Error;
 use std::str;
-use base64::{Engine as _, engine::general_purpose::STANDARD};
 /// This trait must be implemented for each type of key with which you will
 /// sign things.
 #[async_trait]
@@ -164,12 +164,16 @@ impl Sign for SignKeyPair {
 
 /// Decrypts an RSA private key in PEM format using the given password.
 /// Returns the decrypted key in PKCS8 format.
-pub fn decrypt_key(encrypted_key: &[u8], password: &str) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
-
+pub fn decrypt_key(
+    encrypted_key: &[u8],
+    password: &str,
+) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
     let pem_str = std::str::from_utf8(encrypted_key)?;
     let pem = pem::parse(pem_str)?;
-    let encrypted_private_key_document = pkcs8::EncryptedPrivateKeyDocument::from_der(pem.contents())?;
-    let decrypted_private_key_document = encrypted_private_key_document.decrypt(password.as_bytes())?;
+    let encrypted_private_key_document =
+        pkcs8::EncryptedPrivateKeyDocument::from_der(pem.contents())?;
+    let decrypted_private_key_document =
+        encrypted_private_key_document.decrypt(password.as_bytes())?;
     let decrypted_key_bytes: Vec<u8> = decrypted_private_key_document.as_ref().to_vec();
     let decrypted_key_base64 = STANDARD.encode(&decrypted_key_bytes);
     let pem_key = format!(
@@ -184,7 +188,6 @@ pub fn decrypt_key(encrypted_key: &[u8], password: &str) -> std::result::Result<
 /// implements the Sign trait
 /// Accepted Keys: ED25519 pkcs8, Ecdsa pkcs8, RSA
 pub fn parse_keypair(key: &[u8], password: Option<&str>) -> Result<impl Sign> {
-
     let decrypted_key = if let Some(pw) = password {
         decrypt_key(key, pw).unwrap_or_else(|_| key.to_vec())
     } else {
