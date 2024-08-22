@@ -1,4 +1,4 @@
-#![allow(clippy::used_underscore_binding)] // #20
+#![allow(clippy::used_underscore_binding, clippy::pub_underscore_fields)] // #20
 
 //! Provides the schema objects as defined by the TUF spec.
 
@@ -61,7 +61,7 @@ derive_fromstr_from_deserialize!(RoleType);
 /// A role identifier
 #[derive(Debug, Clone)]
 pub enum RoleId {
-    /// Top level roles are identified by a RoleType
+    /// Top level roles are identified by a `RoleType`
     StandardRole(RoleType),
     /// A delegated role is identified by a String
     DelegatedRole(String),
@@ -256,11 +256,11 @@ pub struct Snapshot {
     /// Determines when metadata should be considered expired and no longer trusted by clients.
     pub expires: DateTime<Utc>,
 
-    /// A list of what the TUF spec calls 'METAFILES' (`SnapshotMeta` objects). The TUF spec
+    /// A list of what the TUF spec calls 'METAFILES' (`Metafiles` objects). The TUF spec
     /// describes the hash key in 4.4: METAPATH is the file path of the metadata on the repository
     /// relative to the metadata base URL. For snapshot.json, these are top-level targets metadata
     /// and delegated targets metadata.
-    pub meta: HashMap<String, SnapshotMeta>,
+    pub meta: HashMap<String, Metafile>,
 
     /// Extra arguments found during deserialization.
     ///
@@ -272,7 +272,7 @@ pub struct Snapshot {
     pub _extra: HashMap<String, Value>,
 }
 
-/// Represents a metadata file in a `snapshot.json` file.
+/// Represents a metadata file in a `snapshot.json` and in a `timestamp.json` file.
 /// TUF 4.4: METAFILES is an object whose format is the following:
 /// ```text
 ///  { METAPATH : {
@@ -292,7 +292,7 @@ pub struct Snapshot {
 ///    },
 /// ```
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
-pub struct SnapshotMeta {
+pub struct Metafile {
     /// LENGTH is the integer length in bytes of the metadata file at METAPATH. It is OPTIONAL and
     /// can be omitted to reduce the snapshot metadata file size. In that case the client MUST use a
     /// custom download limit for the listed metadata.
@@ -898,12 +898,12 @@ pub enum PathSet {
     #[serde(rename = "paths")]
     Paths(Vec<PathPattern>),
 
-    /// The "path_hash_prefixes" list is used to succinctly describe a set of target paths.
-    /// Specifically, each HEX_DIGEST in "path_hash_prefixes" describes a set of target paths;
-    /// therefore, "path_hash_prefixes" is the union over each prefix of its set of target paths.
+    /// The `path_hash_prefixes` list is used to succinctly describe a set of target paths.
+    /// Specifically, each `HEX_DIGEST` in `path_hash_prefixes` describes a set of target paths;
+    /// therefore, `path_hash_prefixes` is the union over each prefix of its set of target paths.
     /// The target paths must meet this condition: each target path, when hashed with the SHA-256
-    /// hash function to produce a 64-byte hexadecimal digest (HEX_DIGEST), must share the same
-    /// prefix as one of the prefixes in "path_hash_prefixes". This is useful to split a large
+    /// hash function to produce a 64-byte hexadecimal digest (`HEX_DIGEST`), must share the same
+    /// prefix as one of the prefixes in `path_hash_prefixes`. This is useful to split a large
     /// number of targets into separate bins identified by consistent hashing.
     #[serde(rename = "path_hash_prefixes")]
     PathHashPrefixes(Vec<PathHashPrefix>),
@@ -1112,7 +1112,7 @@ pub struct Timestamp {
 
     /// METAFILES is the same as described for the snapshot.json file. In the case of the
     /// timestamp.json file, this MUST only include a description of the snapshot.json file.
-    pub meta: HashMap<String, TimestampMeta>,
+    pub meta: HashMap<String, Metafile>,
 
     /// Extra arguments found during deserialization.
     ///
@@ -1121,29 +1121,6 @@ pub struct Timestamp {
     /// If you're instantiating this struct, you should make this `HashMap::empty()`.
     #[serde(flatten)]
     #[serde(deserialize_with = "de::extra_skip_type")]
-    pub _extra: HashMap<String, Value>,
-}
-
-/// METAFILES is the same as described for the snapshot.json file. In the case of the timestamp.json
-/// file, this MUST only include a description of the snapshot.json file.
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
-pub struct TimestampMeta {
-    /// The integer length in bytes of the snapshot.json file.
-    pub length: u64,
-
-    /// The hashes of the snapshot.json file.
-    pub hashes: Hashes,
-
-    /// An integer that is greater than 0. Clients MUST NOT replace a metadata file with a version
-    /// number less than the one currently trusted.
-    pub version: NonZeroU64,
-
-    /// Extra arguments found during deserialization.
-    ///
-    /// We must store these to correctly verify signatures for this object.
-    ///
-    /// If you're instantiating this struct, you should make this `HashMap::empty()`.
-    #[serde(flatten)]
     pub _extra: HashMap<String, Value>,
 }
 
