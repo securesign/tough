@@ -24,6 +24,7 @@ mod download_root;
 mod error;
 mod remove_key_role;
 mod remove_role;
+mod rhtas;
 mod root;
 mod source;
 mod transfer_metadata;
@@ -90,6 +91,8 @@ enum Command {
     TransferMetadata(transfer_metadata::TransferMetadataArgs),
     /// Update a TUF repository's metadata and optionally add targets
     Update(Box<update::UpdateArgs>),
+    /// Manage RHTAS TUF
+    Rhtas(Box<rhtas::RhtasArgs>),
 }
 
 impl Command {
@@ -99,6 +102,7 @@ impl Command {
             Command::Root(root_subcommand) => root_subcommand.run().await,
             Command::Download(args) => args.run().await,
             Command::Update(args) => args.run().await,
+            Command::Rhtas(args) => args.run().await,
             Command::Delegation(cmd) => cmd.run().await,
             Command::Clone(cmd) => cmd.run().await,
             Command::TransferMetadata(cmd) => cmd.run().await,

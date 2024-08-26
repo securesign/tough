@@ -115,7 +115,28 @@ tuftool update \
    --timestamp-version 2 \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/metadata
+
+#[Optional] Set an RHTAS target (fulcio, ctlog, rekor, tsa)!
+touch "${WRK}/input/ctfe.pub" 
+
+tuftool rhtas \
+   --root "${ROOT}" \
+   --key "${WRK}/keys/root.pem" \
+   --set-ctlog-target "${WRK}/input/ctfe.pub" \
+   --ctlog-uri "https://ctfe.sigstore.dev" \
+   --ctlog-usage "CTFE" \
+   --targets-expires 'in 3 weeks' \
+   --targets-version 3 \
+   --snapshot-expires 'in 3 weeks' \
+   --snapshot-version 3 \
+   --timestamp-expires 'in 1 week' \
+   --timestamp-version 3 \
+   --outdir "${WRK}/tuf-repo" \
+   --metadata-url file:///$WRK/tuf-repo/metadata
+
 ```
+
+
 
 ### Download TUF Repo
 Now that we have created TUF repo, we can inspect it using download command. 
