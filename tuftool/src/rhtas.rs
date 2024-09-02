@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
+use tough::editor::signed::PathExists;
 
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
@@ -59,6 +60,12 @@ pub(crate) struct RhtasArgs {
     #[arg(long)]
     snapshot_version: NonZeroU64,
 
+    /// Behavior when a target exists with the same name and hash in the targets directory,
+    /// for example from another repository when they share a targets directory.
+    /// Options are "replace", "fail", and "skip"
+    #[arg(long, default_value = "skip")]
+    target_path_exists: PathExists,
+
     /// Path to the new Fulcio target file to add to the targets
     #[arg(long = "set-fulcio-target")]
     fulcio_target: Option<PathBuf>,
@@ -70,10 +77,6 @@ pub(crate) struct RhtasArgs {
     /// URI for the Fulcio target
     #[arg(long, default_value = "https://fulcio.sigstore.dev")]
     fulcio_uri: String,
-
-    /// Usage for the Fulcio target
-    #[arg(long, default_value = "Fulcio")]
-    fulcio_usage: String,
 
     /// Path to the new Ctlog target file
     #[arg(long = "set-ctlog-target")]
@@ -87,10 +90,6 @@ pub(crate) struct RhtasArgs {
     #[arg(long, default_value = "https://ctfe.sigstore.dev/test")]
     ctlog_uri: String,
 
-    /// Usage for the Ctlog certificate
-    #[arg(long, default_value = "CTFE")]
-    ctlog_usage: String,
-
     /// Path to the new rekor target file
     #[arg(long = "set-rekor-target")]
     rekor_target: Option<PathBuf>,
@@ -103,10 +102,6 @@ pub(crate) struct RhtasArgs {
     #[arg(long, default_value = "https://rekor.sigstore.dev")]
     rekor_uri: String,
 
-    /// Usage for the rekor certificate
-    #[arg(long, default_value = "Rekor")]
-    rekor_usage: String,
-
     /// Path to the new Timestamp Authority target file
     #[arg(long = "set-tsa-target")]
     tsa_target: Option<PathBuf>,
@@ -118,10 +113,6 @@ pub(crate) struct RhtasArgs {
     /// URI for the tsa certificate
     #[arg(long, default_value = "")]
     tsa_uri: String,
-
-    /// Usage for the tsa certificate
-    #[arg(long, default_value = "Timestamp Authority")]
-    tsa_usage: String,
 
     /// Expiration of targets.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
@@ -239,10 +230,32 @@ impl RhtasArgs {
                 })?;
         }
 
-        // Sign the repo
         let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
 
-        // Write the metadata to the outdir
+        let mut target_path: Option<&PathBuf> = None;
+
+        if let Some(ref fulcio_target_path) = self.fulcio_target {
+            target_path = Some(fulcio_target_path);
+        }
+        if let Some(ref ctlog_target_path) = self.ctlog_target {
+            target_path = Some(ctlog_target_path);
+        }
+        if let Some(ref rekor_target_path) = self.rekor_target {
+            target_path = Some(rekor_target_path);
+        }
+        if let Some(ref tsa_target_path) = self.tsa_target {
+            target_path = Some(tsa_target_path);
+        }
+        if let Some(path) = target_path {
+            let targets_outdir = &self.outdir.join("targets");
+            signed_repo
+                .link_targets(path, targets_outdir, self.target_path_exists)
+                .await
+                .context(error::LinkTargetsSnafu {
+                    indir: path,
+                    outdir: targets_outdir,
+                })?;
+        }
         let metadata_dir = &self.outdir.join("metadata");
         signed_repo
             .write(metadata_dir)
@@ -253,14 +266,18 @@ impl RhtasArgs {
 
         Ok(())
     }
+
     async fn set_fulcio_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
         if let Some(ref fulcio_target_path) = self.fulcio_target {
             let mut fulcio_target = build_targets(fulcio_target_path, self.follow).await?;
 
+            if self.fulcio_status != "Active" && self.fulcio_status != "Expired" {
+                return error::NoValidTargetStatusSnafu {}.fail();
+            }
             let custom_sigstore_metadata = json!({
                 "status": self.fulcio_status,
                 "uri": self.fulcio_uri,
-                "usage": self.fulcio_usage
+                "usage": "Fulcio"
             });
 
             if let Some((target_name, target)) = fulcio_target.iter_mut().next() {
@@ -279,10 +296,13 @@ impl RhtasArgs {
         if let Some(ref ctlog_target_path) = self.ctlog_target {
             let mut ctlog_target = build_targets(ctlog_target_path, self.follow).await?;
 
+            if self.ctlog_status != "Active" && self.ctlog_status != "Expired" {
+                return error::NoValidTargetStatusSnafu {}.fail();
+            }
             let custom_sigstore_metadata = json!({
                 "status": self.ctlog_status,
                 "uri": self.ctlog_uri,
-                "usage": self.ctlog_usage
+                "usage": "CTFE"
             });
 
             if let Some((target_name, target)) = ctlog_target.iter_mut().next() {
@@ -301,10 +321,13 @@ impl RhtasArgs {
         if let Some(ref rekor_target_path) = self.rekor_target {
             let mut rekor_target = build_targets(rekor_target_path, self.follow).await?;
 
+            if self.rekor_status != "Active" && self.rekor_status != "Expired" {
+                return error::NoValidTargetStatusSnafu {}.fail();
+            }
             let custom_sigstore_metadata = json!({
                 "status": self.rekor_status,
                 "uri": self.rekor_uri,
-                "usage": self.rekor_usage
+                "usage": "Rekor"
             });
 
             if let Some((target_name, target)) = rekor_target.iter_mut().next() {
@@ -323,10 +346,13 @@ impl RhtasArgs {
         if let Some(ref tsa_target_path) = self.tsa_target {
             let mut tsa_target = build_targets(tsa_target_path, self.follow).await?;
 
+            if self.tsa_status != "Active" && self.tsa_status != "Expired" {
+                return error::NoValidTargetStatusSnafu {}.fail();
+            }
             let custom_sigstore_metadata = json!({
                 "status": self.tsa_status,
                 "uri": self.tsa_uri,
-                "usage": self.tsa_usage
+                "usage": "Timestamp Authority"
             });
 
             if let Some((target_name, target)) = tsa_target.iter_mut().next() {

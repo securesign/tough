@@ -73,6 +73,30 @@ pub(crate) enum Error {
         backtrace: Backtrace,
     },
 
+    #[snafu(display("Invalid target status. The status must be either 'Active' or 'Expired'"))]
+    NoValidTargetStatus { backtrace: Backtrace },
+
+    #[snafu(display("Unable to create directory: {:?}", path))]
+    CreateDir {
+        path: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
+    #[snafu(display("Invalid path: {:?}", path))]
+    InvalidPath {
+        path: PathBuf,
+        backtrace: Backtrace,
+    },
+    
+    #[snafu(display("Failed to copy file from {:?} to {:?}: {}", src, destination, source))]
+    FileCopy {
+        src: PathBuf,
+        destination: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
     #[snafu(display("Couldn't find role '{}': {}", role, source))]
     DelegateeNotFound {
         role: String,
