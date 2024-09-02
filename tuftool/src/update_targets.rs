@@ -121,12 +121,11 @@ impl UpdateTargetsArgs {
         };
 
         // Write the metadata to the outdir
-        let metadata_dir = &self.outdir.join("metadata");
         signed_role
-            .write(metadata_dir, false)
+            .write(&self.outdir, false)
             .await
             .context(error::WriteRepoSnafu {
-                directory: metadata_dir,
+                directory: &self.outdir,
             })?;
 
         Ok(())

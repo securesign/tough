@@ -76,9 +76,8 @@ impl RemoveRoleArgs {
             .sign(&keys)
             .await
             .context(error::SignRepoSnafu)?;
-        let metadata_destination_out = &self.outdir.join("metadata");
         updated_role
-            .write(metadata_destination_out, false)
+            .write(&self.outdir, false)
             .await
             .context(error::WriteRolesSnafu {
                 roles: [role.to_string()].to_vec(),

@@ -140,9 +140,8 @@ impl AddRoleArgs {
             .sign(&keys)
             .await
             .context(error::SignRepoSnafu)?;
-        let metadata_destination_out = &self.outdir.join("metadata");
         updated_role
-            .write(metadata_destination_out, false)
+            .write(&self.outdir, false)
             .await
             .context(error::WriteRolesSnafu {
                 roles: [self.delegatee.clone(), role.to_string()].to_vec(),
@@ -220,9 +219,8 @@ impl AddRoleArgs {
             .timestamp_expires(timestamp_expires);
 
         let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
-        let metadata_destination_out = &self.outdir.join("metadata");
         signed_repo
-            .write(metadata_destination_out)
+            .write(&self.outdir)
             .await
             .context(error::WriteRolesSnafu {
                 roles: [self.delegatee.clone(), role.to_string()].to_vec(),

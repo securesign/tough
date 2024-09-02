@@ -72,7 +72,7 @@ async fn update_command_without_new_targets() {
     let new_snapshot_version: u64 = 250;
     let new_targets_expiration = Utc::now().checked_add_signed(days(6)).unwrap();
     let new_targets_version: u64 = 170;
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(&repo_dir);
     let update_out = TempDir::new().unwrap();
 
     // Update the repo we just created
@@ -107,7 +107,7 @@ async fn update_command_without_new_targets() {
     // Load the updated repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(&update_out),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -145,7 +145,7 @@ async fn update_command_with_new_targets() {
     let new_targets_expiration = Utc::now().checked_add_signed(days(6)).unwrap();
     let new_targets_version: u64 = 170;
     let new_targets_input_dir = test_utils::test_data().join("targets");
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(&repo_dir);
     let update_out = TempDir::new().unwrap();
 
     // Update the repo we just created
@@ -182,7 +182,7 @@ async fn update_command_with_new_targets() {
     // Load the updated repo.
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(&update_out),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -306,7 +306,7 @@ fn updates_expired_repo(
     let snapshot_version: u64 = 250;
     let targets_expiration = Utc::now().checked_add_signed(days(6)).unwrap();
     let targets_version: u64 = 170;
-    let metadata_base_url = &test_utils::dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &test_utils::dir_url(&repo_dir);
     let mut cmd = Command::cargo_bin("tuftool").unwrap();
     cmd.args([
         "update",
@@ -373,7 +373,7 @@ async fn update_command_expired_repo_allow() {
     let root_json = test_utils::test_data().join("simple-rsa").join("root.json");
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(outdir.path().join("metadata")),
+        dir_url(&outdir),
         dir_url(outdir.path().join("targets")),
     )
     .load()
