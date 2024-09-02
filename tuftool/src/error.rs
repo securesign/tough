@@ -84,11 +84,8 @@ pub(crate) enum Error {
     },
 
     #[snafu(display("Invalid path: {:?}", path))]
-    InvalidPath {
-        path: PathBuf,
-        backtrace: Backtrace,
-    },
-    
+    InvalidPath { path: PathBuf, backtrace: Backtrace },
+
     #[snafu(display("Failed to copy file from {:?} to {:?}: {}", src, destination, source))]
     FileCopy {
         src: PathBuf,

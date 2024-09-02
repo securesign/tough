@@ -12,10 +12,10 @@ use serde_json::json;
 use snafu::{OptionExt, ResultExt};
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
+use tough::editor::signed::PathExists;
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
-use tough::editor::signed::PathExists;
 
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
