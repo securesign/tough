@@ -199,7 +199,7 @@ impl RhtasArgs {
                 .context(error::RemoveTargetSnafu {
                     name: target_name.raw(),
                 })?;
-            self.remove_target_file(&target_name.raw()).await?;
+            self.remove_target_file(target_name.raw()).await?;
         }
 
         // If the "set-fulcio-target" argument was passed, build a target
