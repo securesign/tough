@@ -367,7 +367,7 @@ impl RhtasArgs {
             let custom_sigstore_metadata = json!({
                 "status": self.tsa_status,
                 "uri": self.tsa_uri,
-                "usage": "Timestamp Authority"
+                "usage": "TSA"
             });
 
             if let Some((target_name, target)) = tsa_target.iter_mut().next() {
