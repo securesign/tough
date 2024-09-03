@@ -385,7 +385,7 @@ impl RhtasArgs {
     async fn remove_target_file(&self, target_name: &str) -> Result<()> {
         let targets_dir = self.outdir.join("targets");
 
-        if !targets_dir.exists(){
+        if !targets_dir.exists() {
             return error::TargetFileDoesNotExistSnafu {}.fail();
         }
 
@@ -395,7 +395,7 @@ impl RhtasArgs {
                 .context(error::ReadDirSnafu {
                     path: targets_dir.clone(),
                 })?;
-        
+
         let mut target_found = false;
         while let Some(entry) = dir_entries
             .next_entry()
