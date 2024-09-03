@@ -10,14 +10,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --defa
 
 ENV PATH "$PATH:/root/.cargo/bin"
 
-RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "i686" ]; then \
-	cargo install --force --locked tuftool; \
-else \
-	echo "Unsupported architecture: $(uname -m)"; \
-	exit 1; \
-fi
-
-RUN mkdir /share
+COPY . .
+RUN cargo build --release
 
 ENTRYPOINT ["tuftool"]
 
