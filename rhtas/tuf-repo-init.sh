@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+usage() {
+  cat << EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [OPTION] [TUF_REPO_PATH]
+
+Initialize a TUF repository with given targets in TUF_REPO_PATH.
+
+Options:
+  -h, --help
+    Display this help message
+
+  --export-keys
+    Where to save keys - either a file:///path/to/dir or a string - k8s secret name
+
+  --fulcio-cert
+    Fulcio certificate chain file
+
+  --tsa-cert
+    TSA certificate chain file
+
+  --ctlog-key
+    CTLog public key file
+
+  --rekor-key
+    Rekor public key file
+
+  --metadata-expiration
+    Tuftool-compatible tetadata expiration time; defaults to 56 weeks
+EOF
+}
+
+export TUF_REPO_PATH=""
+export EXPORT_KEYS=""
+export FULCIO_CERT=""
+export TSA_CERT=""
+export CTLOG_KEY=""
+export REKOR_KEY=""
+export METADATA_EXPIRATION="in 56 weeks"
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      shift
+      usage
+      exit
+      ;;
+    --export-keys)
+      EXPORT_KEYS="$2"
+      shift
+      shift
+      ;;
+    --fulcio-cert)
+      FULCIO_CERT="$2"
+      shift
+      shift
+      ;;
+    --tsa-cert)
+      TSA_CERT="$2"
+      shift
+      shift
+      ;;
+    --ctlog-key)
+      CTLOG_KEY="$2"
+      shift
+      shift
+      ;;
+    --rekor-key)
+      REKOR_KEY="$2"
+      shift
+      shift
+      ;;
+    --metadata-expiration)
+      METADATA_EXPIRATION="$2"
+      shift
+      shift
+      ;;
+    -*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      if [ -n "${TUF_REPO_PATH}" ]; then
+        echo "Only expected one positional argument"
+        usage
+        exit 1
+      fi
+      TUF_REPO_PATH="$1"
+      shift
+      ;;
+  esac
+done
+
+if [ -z "${TUF_REPO_PATH}" ]; then
+  echo "TUF repo path not specified"
+  usage
+  exit 1
+fi
+
+if [ -e "${TUF_REPO_PATH}/root.json" ]; then
+  echo "Repo seems to already be initialized (${TUF_REPO_PATH}/root.json exists)"
+  exit 1
+fi
+
+export WORKDIR=""
+WORKDIR=$(mktemp -d /tmp/tuf.XXXX)
+
+echo "Initializing TUF repository in ${WORKDIR} ..."
+
+export ROOT="${WORKDIR}/root/root.json"
+export INPUTDIR="${WORKDIR}/input"
+export KEYDIR="${WORKDIR}/keys"
+export ROOTDIR="${WORKDIR}/root"
+export OUTDIR="${WORKDIR}/tuf-repo"
+mkdir -p "${ROOTDIR}" "${KEYDIR}" "${INPUTDIR}" "${OUTDIR}"
+
+# init the root
+tuftool root init "${ROOT}"
+tuftool root expire "${ROOT}" "${METADATA_EXPIRATION}"
+
+# set thresholds
+tuftool root set-threshold "${ROOT}" root 1
+tuftool root set-threshold "${ROOT}" snapshot 1
+tuftool root set-threshold "${ROOT}" targets 1
+tuftool root set-threshold "${ROOT}" timestamp 1
+
+echo "Generating signing keys in ${KEYDIR} ..."
+
+# generate keys
+tuftool root gen-rsa-key "${ROOT}" "${KEYDIR}/root.pem" --role root
+tuftool root gen-rsa-key "${ROOT}" "${KEYDIR}/snapshot.pem" --role snapshot
+tuftool root gen-rsa-key "${ROOT}" "${KEYDIR}/targets.pem" --role targets
+tuftool root gen-rsa-key "${ROOT}" "${KEYDIR}/timestamp.pem" --role timestamp
+
+echo "Signing the root file ${ROOT} ..."
+
+# sign root
+tuftool root sign "${ROOT}" -k "${KEYDIR}/root.pem"
+
+echo "Preparing targets in ${INPUTDIR} ..."
+
+# prepare targets
+if [ -n "${FULCIO_CERT}" ]; then
+  cp "${FULCIO_CERT}" "${INPUTDIR}"
+fi
+
+if [ -n "${TSA_CERT}" ]; then
+  cp "${TSA_CERT}" "${INPUTDIR}"
+fi
+
+if [ -n "${CTLOG_KEY}" ]; then
+  cp "${CTLOG_KEY}" "${INPUTDIR}"
+fi
+
+if [ -n "${REKOR_KEY}" ]; then
+  cp "${REKOR_KEY}" "${INPUTDIR}"
+fi
+
+echo "Creating repository with targets: $(ls -m "${INPUTDIR}") ..."
+
+# create the repo
+tuftool create \
+  --root "${ROOT}" \
+  --key "${KEYDIR}/root.pem" \
+  --key "${KEYDIR}/snapshot.pem" \
+  --key "${KEYDIR}/targets.pem" \
+  --key "${KEYDIR}/timestamp.pem" \
+  --add-targets "${INPUTDIR}" \
+  --targets-expires "${METADATA_EXPIRATION}" \
+  --targets-version 1 \
+  --snapshot-expires "${METADATA_EXPIRATION}" \
+  --snapshot-version 1 \
+  --timestamp-expires "${METADATA_EXPIRATION}" \
+  --timestamp-version 1 \
+  --outdir "${OUTDIR}"
+
+if [ "${EXPORT_KEYS:0:7}" = "file://" ]; then
+  export EXPORT_DIR=${EXPORT_KEYS:7}
+  echo "Exporting keys to directory ${EXPORT_DIR} ..."
+  mkdir -p "${EXPORT_DIR}"
+  cp "${KEYDIR}/"* "${EXPORT_DIR}"
+elif [ -n "${EXPORT_KEYS}" ]; then
+  echo "Exporting keys to k8s secret ${EXPORT_KEYS} ..."
+  export AUTHDIR="/var/run/secrets/kubernetes.io/serviceaccount"
+  curl -X POST \
+    --cacert "${AUTHDIR}/ca.crt" \
+    -H "Authorization: Bearer $(cat ${AUTHDIR}/token)" \
+    --header 'Content-Type: application/json' \
+    --data @- \
+    "https://kubernetes.default/api/v1/namespaces/${NAMESPACE}/secrets" <<EOF
+{
+ "apiVersion":"v1",
+ "kind" :"Secret",
+ "metadata" :{"namespace": "${NAMESPACE}", "name": "${EXPORT_KEYS}"},
+ "type": "Opaque",
+ "data": {
+   "root.pem": "$(base64 -w0 < "${KEYDIR}/root.pem")",
+   "snapshot.pem": "$(base64 -w0 < "${KEYDIR}/snapshot.pem")",
+   "targets.pem": "$(base64 -w0 < "${KEYDIR}/targets.pem")",
+   "timestamp.pem": "$(base64 -w0 < "${KEYDIR}/timestamp.pem")"
+  }
+}
+EOF
+else
+  echo "Key export location not specified, not exporting keys"
+fi
+
+echo "Copying the TUF repository to final location ${TUF_REPO_PATH} ..."
+# TODO: fix this based on changes in layout of tuftool output
+cp -R "${OUTDIR}" "${TUF_REPO_PATH}"
+
+echo "Finished successfully!"

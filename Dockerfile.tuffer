@@ -1,0 +1,32 @@
+FROM registry.access.redhat.com/ubi9/ubi:latest
+
+USER root
+
+ARG RUST_VERSION="1.79.0"
+
+run dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
+
+ENV PATH "$PATH:/root/.cargo/bin"
+
+RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "i686" ]; then \
+	cargo install --force --locked tuftool; \
+else \
+	echo "Unsupported architecture: $(uname -m)"; \
+	exit 1; \
+fi
+
+RUN mkdir /share
+
+COPY rhtas/tuf-repo-init.sh /usr/bin/
+
+ENTRYPOINT ["/usr/bin/tuf-repo-init.sh"]
+
+LABEL description ="Tuffer is a utility application used for generating an initial trust root for RHTAS"
+LABEL io.k8s.description="Tuffer is a utility application used for generating an initial trust root for RHTAS"
+LABEL io.k8s.display-name="Tuffer container image for Red Hat Trusted Artifact Signer"
+LABEL io.openshift.tags="Tuffer Trusted Artifact Signer"
+LABEL summary="Provides the tuf-repo-init script for generating an initial trust root for RHTAS"
+LABEL com.redhat.component="tuffer"
+LABEL name="tuffer"
