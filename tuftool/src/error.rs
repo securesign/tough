@@ -108,6 +108,9 @@ pub(crate) enum Error {
         backtrace: Backtrace,
     },
 
+    #[snafu(display("Failed to remove target: Target file does not exist"))]
+    TargetFileDoesNotExist { backtrace: Backtrace },
+
     #[snafu(display("Failed to read directory '{}': {}", path.display(), source))]
     ReadDir {
         path: PathBuf,

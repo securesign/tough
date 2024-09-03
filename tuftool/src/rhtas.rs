@@ -385,8 +385,8 @@ impl RhtasArgs {
     async fn remove_target_file(&self, target_name: &str) -> Result<()> {
         let targets_dir = self.outdir.join("targets");
 
-        if !targets_dir.exists() {
-            return Ok(());
+        if !targets_dir.exists(){
+            return error::TargetFileDoesNotExistSnafu {}.fail();
         }
 
         let mut dir_entries =
@@ -395,7 +395,8 @@ impl RhtasArgs {
                 .context(error::ReadDirSnafu {
                     path: targets_dir.clone(),
                 })?;
-
+        
+        let mut target_found = false;
         while let Some(entry) = dir_entries
             .next_entry()
             .await
@@ -407,6 +408,7 @@ impl RhtasArgs {
             let file_name_str = file_name.to_string_lossy();
 
             if file_name_str.contains(target_name) {
+                target_found = true;
                 let file_path = entry.path();
                 tokio::fs::remove_file(&file_path)
                     .await
@@ -414,6 +416,10 @@ impl RhtasArgs {
                         path: file_path.clone(),
                     })?;
             }
+        }
+
+        if !target_found {
+            return error::TargetFileDoesNotExistSnafu {}.fail();
         }
         Ok(())
     }
