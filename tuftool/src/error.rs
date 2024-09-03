@@ -94,6 +94,32 @@ pub(crate) enum Error {
         backtrace: Backtrace,
     },
 
+    #[snafu(display("Failed to remove target '{}': {}", name, source))]
+    RemoveTarget {
+        name: String,
+        source: tough::error::Error,
+        backtrace: Backtrace,
+    },
+
+    #[snafu(display("Failed to remove existing target path '{}': {}", path.display(), source))]
+    RemoveTargetPath {
+        path: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
+    #[snafu(display("Failed to read directory '{}': {}", path.display(), source))]
+    ReadDir {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+
+    #[snafu(display("Failed to process directory entry in '{}': {}", path.display(), source))]
+    DirEntry {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+
     #[snafu(display("Couldn't find role '{}': {}", role, source))]
     DelegateeNotFound {
         role: String,

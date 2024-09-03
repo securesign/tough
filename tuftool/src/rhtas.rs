@@ -6,6 +6,7 @@ use crate::common::UNUSED_URL;
 use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
 use crate::source::parse_key_source;
+use crate::TargetName;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use serde_json::json;
@@ -65,6 +66,9 @@ pub(crate) struct RhtasArgs {
     /// Options are "replace", "fail", and "skip"
     #[arg(long, default_value = "skip")]
     target_path_exists: PathExists,
+
+    #[arg(long = "delete-target")]
+    delete_targets: Vec<TargetName>,
 
     /// Path to the new Fulcio target file to add to the targets
     #[arg(long = "set-fulcio-target")]
@@ -186,6 +190,17 @@ impl RhtasArgs {
             .snapshot_expires(self.snapshot_expires)
             .timestamp_version(self.timestamp_version)
             .timestamp_expires(self.timestamp_expires);
+
+        // If the "remove-target" argument was passed, remove the target
+        // from the repository.
+        for target_name in &self.delete_targets {
+            editor
+                .remove_target(target_name)
+                .context(error::RemoveTargetSnafu {
+                    name: target_name.raw(),
+                })?;
+            self.remove_target_file(&target_name.raw()).await?;
+        }
 
         // If the "set-fulcio-target" argument was passed, build a target
         // and add it to the repository.
@@ -362,6 +377,42 @@ impl RhtasArgs {
                 editor
                     .add_target(target_name.clone(), target.clone())
                     .context(error::DelegationStructureSnafu)?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn remove_target_file(&self, target_name: &str) -> Result<()> {
+        let targets_dir = self.outdir.join("targets");
+
+        if !targets_dir.exists() {
+            return Ok(());
+        }
+
+        let mut dir_entries =
+            tokio::fs::read_dir(&targets_dir)
+                .await
+                .context(error::ReadDirSnafu {
+                    path: targets_dir.clone(),
+                })?;
+
+        while let Some(entry) = dir_entries
+            .next_entry()
+            .await
+            .context(error::DirEntrySnafu {
+                path: targets_dir.clone(),
+            })?
+        {
+            let file_name = entry.file_name();
+            let file_name_str = file_name.to_string_lossy();
+
+            if file_name_str.contains(target_name) {
+                let file_path = entry.path();
+                tokio::fs::remove_file(&file_path)
+                    .await
+                    .context(error::RemoveTargetPathSnafu {
+                        path: file_path.clone(),
+                    })?;
             }
         }
         Ok(())

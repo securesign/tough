@@ -124,13 +124,26 @@ tuftool rhtas \
    --key "${WRK}/keys/root.pem" \
    --set-ctlog-target "${WRK}/input/ctfe.pub" \
    --ctlog-uri "https://ctfe.sigstore.dev" \
-   --ctlog-usage "CTFE" \
    --targets-expires 'in 3 weeks' \
    --targets-version 3 \
    --snapshot-expires 'in 3 weeks' \
    --snapshot-version 3 \
    --timestamp-expires 'in 1 week' \
    --timestamp-version 3 \
+   --outdir "${WRK}/tuf-repo" \
+   --metadata-url file:///$WRK/tuf-repo/metadata
+
+# delete a target
+tuftool rhtas \
+   --root "${ROOT}" \
+   --key "${WRK}/keys/root.pem" \
+   --delete-target "ctfe.pub" \
+   --targets-expires 'in 3 weeks' \
+   --targets-version 4 \
+   --snapshot-expires 'in 3 weeks' \
+   --snapshot-version 4 \
+   --timestamp-expires 'in 1 week' \
+   --timestamp-version 4 \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/metadata
 
