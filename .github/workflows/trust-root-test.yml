@@ -24,7 +24,7 @@ jobs:
           restore-keys: |
             ${{ hashFiles('.github/cache_bust') }}
       - run: rustup default stable
-      - run: cargo build --release && cp target/release/tuftool /usr/bin/
+      - run: cargo build --release && cp target/release/tuftool ${HOME}/.local/bin/
       - run: |
           ./rhtas/tuf-repo-init.sh --export-keys file:///tmp/exported-keys \
             --fulcio-cert ./rhtas/test/fulcio-cert \
@@ -32,5 +32,5 @@ jobs:
             --ctlog-key .rhtas/test/ctfe-pubkey \
             --rekor-key ./rhtas/test/rekor-pubkey \
             /tmp/testrepo
-      - run: curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && mv cosign-linux-amd64 /usr/bin/cosign && sudo chmod +x /usr/bin/cosign
+      - run: curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && mv cosign-linux-amd64 ${HOME}/.local/bin/cosign && sudo chmod +x ${HOME}/.local/bin/cosign
       - run: cosign -d initialize --mirror=file:///tmp/testrepo --root=/tmp/testrepo/root.json
