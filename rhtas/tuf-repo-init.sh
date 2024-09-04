@@ -139,26 +139,7 @@ echo "Signing the root file ${ROOT} ..."
 # sign root
 tuftool root sign "${ROOT}" -k "${KEYDIR}/root.pem"
 
-echo "Preparing targets in ${INPUTDIR} ..."
-
-# prepare targets
-if [ -n "${FULCIO_CERT}" ]; then
-  cp "${FULCIO_CERT}" "${INPUTDIR}"
-fi
-
-if [ -n "${TSA_CERT}" ]; then
-  cp "${TSA_CERT}" "${INPUTDIR}"
-fi
-
-if [ -n "${CTLOG_KEY}" ]; then
-  cp "${CTLOG_KEY}" "${INPUTDIR}"
-fi
-
-if [ -n "${REKOR_KEY}" ]; then
-  cp "${REKOR_KEY}" "${INPUTDIR}"
-fi
-
-echo "Creating repository with targets: $(ls -m "${INPUTDIR}") ..."
+echo "Initializing empty repository in ${OUTDIR} ..."
 
 # create the repo
 tuftool create \
@@ -175,6 +156,85 @@ tuftool create \
   --timestamp-expires "${METADATA_EXPIRATION}" \
   --timestamp-version 1 \
   --outdir "${OUTDIR}"
+
+echo "Adding trust root targets ..."
+
+# prepare targets
+if [ -n "${FULCIO_CERT}" ]; then
+  echo "Adding Fulcio certificate chain ${FULCIO_CERT} ..."
+  tuftool rhtas \
+    --root "${ROOT}" \
+    --key "${KEYDIR}/snapshot.pem" \
+    --key "${KEYDIR}/targets.pem" \
+    --key "${KEYDIR}/timestamp.pem" \
+    --set-fulcio-target "${FULCIO_CERT}" \
+    --fulcio-uri "https://fulcio.rhtas" \
+    --targets-expires "${METADATA_EXPIRATION}" \
+    --targets-version 1 \
+    --snapshot-expires "${METADATA_EXPIRATION}" \
+    --snapshot-version 1 \
+    --timestamp-expires "${METADATA_EXPIRATION}" \
+    --timestamp-version 1 \
+    --outdir "${OUTDIR}" \
+    --metadata-url "file://${OUTDIR}"
+fi
+
+if [ -n "${TSA_CERT}" ]; then
+  echo "Adding TSA certificate chain ${TSA_CERT} ..."
+  tuftool rhtas \
+    --root "${ROOT}" \
+    --key "${KEYDIR}/snapshot.pem" \
+    --key "${KEYDIR}/targets.pem" \
+    --key "${KEYDIR}/timestamp.pem" \
+    --set-tsa-target "${TSA_CERT}" \
+    --tsa-uri "https://tsa.rhtas" \
+    --targets-expires "${METADATA_EXPIRATION}" \
+    --targets-version 1 \
+    --snapshot-expires "${METADATA_EXPIRATION}" \
+    --snapshot-version 1 \
+    --timestamp-expires "${METADATA_EXPIRATION}" \
+    --timestamp-version 1 \
+    --outdir "${OUTDIR}" \
+    --metadata-url "file://${OUTDIR}"
+fi
+
+if [ -n "${CTLOG_KEY}" ]; then
+  echo "Adding CTLog public key ${CTLOG_KEY} ..."
+  tuftool rhtas \
+    --root "${ROOT}" \
+    --key "${KEYDIR}/snapshot.pem" \
+    --key "${KEYDIR}/targets.pem" \
+    --key "${KEYDIR}/timestamp.pem" \
+    --set-ctlog-target "${CTLOG_KEY}" \
+    --ctlog-uri "https://ctlog.rhtas" \
+    --targets-expires "${METADATA_EXPIRATION}" \
+    --targets-version 1 \
+    --snapshot-expires "${METADATA_EXPIRATION}" \
+    --snapshot-version 1 \
+    --timestamp-expires "${METADATA_EXPIRATION}" \
+    --timestamp-version 1 \
+    --outdir "${OUTDIR}" \
+    --metadata-url "file://${OUTDIR}"
+fi
+
+if [ -n "${REKOR_KEY}" ]; then
+  echo "Adding Rekor public key ${REKOR_KEY} ..."
+  tuftool rhtas \
+    --root "${ROOT}" \
+    --key "${KEYDIR}/snapshot.pem" \
+    --key "${KEYDIR}/targets.pem" \
+    --key "${KEYDIR}/timestamp.pem" \
+    --set-rekor-target "${REKOR_KEY}" \
+    --fulcio-uri "https://rekor.rhtas" \
+    --targets-expires "${METADATA_EXPIRATION}" \
+    --targets-version 1 \
+    --snapshot-expires "${METADATA_EXPIRATION}" \
+    --snapshot-version 1 \
+    --timestamp-expires "${METADATA_EXPIRATION}" \
+    --timestamp-version 1 \
+    --outdir "${OUTDIR}" \
+    --metadata-url "file://${OUTDIR}"
+fi
 
 if [ "${EXPORT_KEYS:0:7}" = "file://" ]; then
   export EXPORT_DIR=${EXPORT_KEYS:7}

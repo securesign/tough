@@ -1,0 +1,38 @@
+name: Trust root init test
+on:
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - ".github/dependabot.yml"
+    branches: [develop]
+
+env:
+  # From-scratch builds with incremental compilation enabled adds unneeded performance and disk overhead.
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .cargo
+          # you can edit the .github/cache_bust file if you need to clear the cache
+          key: ${{ hashFiles('.github/cache_bust') }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ hashFiles('.github/cache_bust') }}
+      - run: rustup default stable
+      # This directory should already be in PATH for the default Github Action runners, but might not exist
+      - run: mkdir -p ${HOME}/.local/bin/
+      - run: cargo build --release && cp target/release/tuftool ${HOME}/.local/bin/
+      - run: |
+          ./rhtas/tuf-repo-init.sh --export-keys file:///tmp/exported-keys \
+            --fulcio-cert ./rhtas/test/fulcio-cert \
+            --tsa-cert ./rhtas/test/tsa-chain \
+            --ctlog-key ./rhtas/test/ctfe-pubkey \
+            --rekor-key ./rhtas/test/rekor-pubkey \
+            /tmp/testrepo
+      - run: curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && mv cosign-linux-amd64 ${HOME}/.local/bin/cosign && sudo chmod +x ${HOME}/.local/bin/cosign
+      - run: cosign -d initialize --mirror=file:///tmp/testrepo --root=/tmp/testrepo/root.json
