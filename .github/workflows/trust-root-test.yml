@@ -24,7 +24,7 @@ jobs:
           restore-keys: |
             ${{ hashFiles('.github/cache_bust') }}
       - run: rustup default stable
-      - run: cargo build --release && cp target/debug/tuftool /usr/bin/
+      - run: cargo build --release && cp target/release/tuftool /usr/bin/
       - run: |
           ./rhtas/tuf-repo-init.sh --export-keys file:///tmp/exported-keys \
             --fulcio-cert ./rhtas/test/fulcio-cert \
