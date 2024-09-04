@@ -1,19 +1,24 @@
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM registry.access.redhat.com/ubi9/ubi:latest as builder
 
 USER root
 
 ARG RUST_VERSION="1.79.0"
 
-run dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
+RUN dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
 
 ENV PATH "$PATH:/root/.cargo/bin"
 
-COPY . .
-RUN cargo build --release
+RUN mkdir /tmp/tuftool
+COPY . /tmp/tuftool
+RUN cd /tmp/tuftool && cargo build --release
 
-ENTRYPOINT ["tuftool"]
+FROM registry.access.redhat.com/ubi9/ubi:latest as deploy
+
+COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
+
+ENTRYPOINT ["/usr/bin/tuftool"]
 
 LABEL description ="Tuftool is a Rust command-line utility for generating and signing TUF repositories"
 LABEL io.k8s.description="Tuftool is a Rust command-line utility for generating and signing TUF repositories"

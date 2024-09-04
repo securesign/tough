@@ -1,23 +1,22 @@
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM registry.access.redhat.com/ubi9/ubi:latest as builder
 
 USER root
 
 ARG RUST_VERSION="1.79.0"
 
-run dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
+RUN dnf install -y gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
 
 ENV PATH "$PATH:/root/.cargo/bin"
 
-RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "i686" ]; then \
-	cargo install --force --locked tuftool; \
-else \
-	echo "Unsupported architecture: $(uname -m)"; \
-	exit 1; \
-fi
+RUN mkdir /tmp/tuftool
+COPY . /tmp/tuftool
+RUN cd /tmp/tuftool && cargo build --release
 
-RUN mkdir /share
+FROM registry.access.redhat.com/ubi9/ubi:latest as deploy
+
+COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 
 COPY rhtas/tuf-repo-init.sh /usr/bin/
 
