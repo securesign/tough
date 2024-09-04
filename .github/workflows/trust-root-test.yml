@@ -30,7 +30,7 @@ jobs:
       - run: |
           ./rhtas/tuf-repo-init.sh --export-keys file:///tmp/exported-keys \
             --fulcio-cert ./rhtas/test/fulcio-cert \
-            --tsa-cert ~./rhtas/test/tsa-chain \
+            --tsa-cert ./rhtas/test/tsa-chain \
             --ctlog-key .rhtas/test/ctfe-pubkey \
             --rekor-key ./rhtas/test/rekor-pubkey \
             /tmp/testrepo
