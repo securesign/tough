@@ -1,6 +1,6 @@
 [package]
 name = "tuftool"
-version = "0.10.3"
+version = "0.11.0"
 description = "Utility for creating and signing The Update Framework (TUF) repositories"
 authors = ["iliana destroyer of worlds <iweller@amazon.com>"]
 license = "MIT OR Apache-2.0"
@@ -43,9 +43,9 @@ pem = "3.0.4"
 prost-types = "0.12.6"
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
-tough = { version = "0.17", path = "../tough", features = ["http"] }
-tough-kms = { version = "0.9", path = "../tough-kms" }
-tough-ssm = { version = "0.12", path = "../tough-ssm" }
+tough = { version = "0.18", path = "../tough", features = ["http"] }
+tough-kms = { version = "0.10", path = "../tough-kms" }
+tough-ssm = { version = "0.13", path = "../tough-ssm" }
 url = "2"
 walkdir = "2"
 indexmap = { version = "2.5.0", features = ["serde"] }
