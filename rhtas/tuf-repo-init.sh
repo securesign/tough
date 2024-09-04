@@ -159,8 +159,6 @@ tuftool create \
 
 echo "Adding trust root targets ..."
 
-cat ${OUTDIR}/timestamp.json
-
 # prepare targets
 if [ -n "${FULCIO_CERT}" ]; then
   echo "Adding Fulcio certificate chain ${FULCIO_CERT} ..."
