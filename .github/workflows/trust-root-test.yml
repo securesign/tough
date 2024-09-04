@@ -1,4 +1,4 @@
-name: Rust
+name: Trust root init test
 on:
   pull_request:
     paths-ignore:
