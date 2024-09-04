@@ -58,7 +58,7 @@ async fn create_command() {
     // Load our newly created repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(repo_dir.path().join("metadata")),
+        dir_url(repo_dir.path()),
         dir_url(repo_dir.path().join("targets")),
     )
     .load()

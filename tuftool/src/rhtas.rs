@@ -271,12 +271,11 @@ impl RhtasArgs {
                     outdir: targets_outdir,
                 })?;
         }
-        let metadata_dir = &self.outdir.join("metadata");
         signed_repo
-            .write(metadata_dir)
+            .write(&self.outdir)
             .await
             .context(error::WriteRepoSnafu {
-                directory: metadata_dir,
+                directory: &self.outdir,
             })?;
 
         Ok(())

@@ -93,7 +93,7 @@ tuftool create \
   --outdir "${WRK}/tuf-repo"
 
 # you can see our signed repository's metadata here:
-ls "${WRK}/tuf-repo/metadata"
+ls "${WRK}/tuf-repo/"
 # and you can see our signed repository's targets here:
 ls "${WRK}/tuf-repo/targets"
 
@@ -114,7 +114,7 @@ tuftool update \
    --timestamp-expires 'in 1 week' \
    --timestamp-version 2 \
    --outdir "${WRK}/tuf-repo" \
-   --metadata-url file:///$WRK/tuf-repo/metadata
+   --metadata-url file:///$WRK/tuf-repo
 
 #[Optional] Set an RHTAS target (fulcio, ctlog, rekor, tsa)!
 touch "${WRK}/input/ctfe.pub" 
@@ -131,7 +131,7 @@ tuftool rhtas \
    --timestamp-expires 'in 1 week' \
    --timestamp-version 3 \
    --outdir "${WRK}/tuf-repo" \
-   --metadata-url file:///$WRK/tuf-repo/metadata
+   --metadata-url file:///$WRK/tuf-repo/
 
 # delete a target
 tuftool rhtas \
@@ -145,8 +145,7 @@ tuftool rhtas \
    --timestamp-expires 'in 1 week' \
    --timestamp-version 4 \
    --outdir "${WRK}/tuf-repo" \
-   --metadata-url file:///$WRK/tuf-repo/metadata
-
+   --metadata-url file:///$WRK/tuf-repo/
 ```
 
 
@@ -159,10 +158,10 @@ for this example we will use a file based url to download from local repo.
 ```sh
 # download tuf repo
 tuftool download \
-   --root "${ROOT}" \
+   --root "${WRK}/tuf-repo/root.json" \
    -t "file://${WRK}/tuf-repo/targets" \
-   -m "file://${WRK}/tuf-repo/metadata" \
-   "${WRK}/tuf-downlaod"
+   -m "file://${WRK}/tuf-repo/" \
+   "${WRK}/tuf-download"
 ```
 
 ## HTTP Proxy Support

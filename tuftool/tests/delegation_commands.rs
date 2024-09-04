@@ -77,7 +77,7 @@ async fn create_add_role_command() {
 
     // Set new expiration date for the new role
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -112,7 +112,7 @@ async fn create_add_role_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -141,7 +141,7 @@ async fn create_add_role_command() {
         .success();
 
     // Load the updated repo
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
     let updated_targets_base_url = &dir_url(new_repo_dir.path().join("targets"));
     let repo = RepositoryLoader::new(
         &tokio::fs::read(&root_json).await.unwrap(),
@@ -187,7 +187,7 @@ async fn create_add_role_command() {
             "-o",
             add_b_out.path().to_str().unwrap(),
             "-i",
-            dir_url(create_out.path().join("metadata")).as_str(),
+            dir_url(create_out.path()).as_str(),
             "-k",
             targets_key.to_str().unwrap(),
             "--root",
@@ -238,7 +238,7 @@ async fn create_add_role_command() {
             "--role",
             "A",
             "-i",
-            dir_url(add_b_out.path().join("metadata")).as_str(),
+            dir_url(add_b_out.path()).as_str(),
         ])
         .assert()
         .success();
@@ -246,7 +246,7 @@ async fn create_add_role_command() {
     // Load the updated repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(update_out.path()),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -275,7 +275,7 @@ async fn update_target_command() {
 
     // Set new expiration date for the new role
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -310,7 +310,7 @@ async fn update_target_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -340,9 +340,9 @@ async fn update_target_command() {
 
     // Update A's targets
     let ut_out = TempDir::new().unwrap();
-    let meta_out_url = dir_url(ut_out.path().join("metadata"));
+    let meta_out_url = dir_url(ut_out.path());
     let targets_out_url = ut_out.path().join("targets");
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
     let targets_input_dir = test_utils::test_data().join("targets");
     Command::cargo_bin("tuftool")
         .unwrap()
@@ -418,7 +418,7 @@ async fn update_target_command() {
     // Load the updated repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(update_out.path()),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -452,7 +452,7 @@ async fn add_key_command() {
     let new_snapshot_expiration = Utc::now().checked_add_signed(days(5)).unwrap();
     let new_snapshot_version: u64 = 250;
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -487,7 +487,7 @@ async fn add_key_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -514,7 +514,7 @@ async fn add_key_command() {
         ])
         .assert()
         .success();
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
 
     // add key to A
     let key_out = TempDir::new().unwrap();
@@ -556,7 +556,7 @@ async fn add_key_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(key_out.path().join("metadata")).as_str(),
+            dir_url(key_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -579,7 +579,7 @@ async fn add_key_command() {
         .assert()
         .success();
 
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
 
     let create_out = TempDir::new().unwrap();
     // create role B
@@ -614,7 +614,7 @@ async fn add_key_command() {
             "-o",
             add_b_out.path().to_str().unwrap(),
             "-i",
-            dir_url(create_out.path().join("metadata")).as_str(),
+            dir_url(create_out.path()).as_str(),
             "-k",
             targets_key1.to_str().unwrap(),
             "--root",
@@ -665,7 +665,7 @@ async fn add_key_command() {
             "--role",
             "A",
             "-i",
-            dir_url(add_b_out.path().join("metadata")).as_str(),
+            dir_url(add_b_out.path()).as_str(),
         ])
         .assert()
         .success();
@@ -673,7 +673,7 @@ async fn add_key_command() {
     // Load the updated repo
     let _repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(update_out.path()),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -700,7 +700,7 @@ fn remove_key_command() {
     let new_snapshot_expiration = Utc::now().checked_add_signed(days(5)).unwrap();
     let new_snapshot_version: u64 = 250;
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -737,7 +737,7 @@ fn remove_key_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -765,7 +765,7 @@ fn remove_key_command() {
         .assert()
         .success();
 
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
 
     // remove key from A
     let key_out = TempDir::new().unwrap();
@@ -807,7 +807,7 @@ fn remove_key_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(key_out.path().join("metadata")).as_str(),
+            dir_url(key_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -830,7 +830,7 @@ fn remove_key_command() {
         .assert()
         .success();
 
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
 
     let create_out = TempDir::new().unwrap();
     // create role B
@@ -865,7 +865,7 @@ fn remove_key_command() {
             "-o",
             add_b_out.path().to_str().unwrap(),
             "-i",
-            dir_url(create_out.path().join("metadata")).as_str(),
+            dir_url(create_out.path()).as_str(),
             "-k",
             targets_key1.to_str().unwrap(),
             "--root",
@@ -903,7 +903,7 @@ async fn remove_role_command() {
     let new_snapshot_expiration = Utc::now().checked_add_signed(days(5)).unwrap();
     let new_snapshot_version: u64 = 250;
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -938,7 +938,7 @@ async fn remove_role_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -967,7 +967,7 @@ async fn remove_role_command() {
         .success();
 
     // Load the updated repo
-    let updated_metadata_base_url = dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = dir_url(new_repo_dir.path());
     let updated_targets_base_url = dir_url(new_repo_dir.path().join("targets"));
     let repo = RepositoryLoader::new(
         &tokio::fs::read(&root_json).await.unwrap(),
@@ -1013,7 +1013,7 @@ async fn remove_role_command() {
             "-o",
             add_b_out.path().to_str().unwrap(),
             "-i",
-            dir_url(create_out.path().join("metadata")).as_str(),
+            dir_url(create_out.path()).as_str(),
             "-k",
             targets_key.to_str().unwrap(),
             "--root",
@@ -1070,14 +1070,14 @@ async fn remove_role_command() {
             "--role",
             "A",
             "-i",
-            dir_url(add_b_out.path().join("metadata")).as_str(),
+            dir_url(add_b_out.path()).as_str(),
         ])
         .assert()
         .success();
 
     // Remove B from the repo
     let remove_b_out = TempDir::new().unwrap();
-    let updated_metadata_base_url = &dir_url(update_out.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(update_out.path());
 
     // remove role B from A metadata and sign A meta
     Command::cargo_bin("tuftool")
@@ -1143,7 +1143,7 @@ async fn remove_role_command() {
             "--role",
             "A",
             "-i",
-            dir_url(remove_b_out.path().join("metadata")).as_str(),
+            dir_url(remove_b_out.path()).as_str(),
         ])
         .assert()
         .success();
@@ -1151,7 +1151,7 @@ async fn remove_role_command() {
     // Load the updated repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(update_out.path()),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -1180,7 +1180,7 @@ async fn remove_role_recursive_command() {
     let new_snapshot_expiration = Utc::now().checked_add_signed(days(5)).unwrap();
     let new_snapshot_version: u64 = 250;
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -1215,7 +1215,7 @@ async fn remove_role_recursive_command() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -1244,7 +1244,7 @@ async fn remove_role_recursive_command() {
         .success();
 
     // Load the updated repo
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
     let repo = RepositoryLoader::new(
         &tokio::fs::read(&root_json).await.unwrap(),
         updated_metadata_base_url.clone(),
@@ -1289,7 +1289,7 @@ async fn remove_role_recursive_command() {
             "-o",
             add_b_out.path().to_str().unwrap(),
             "-i",
-            dir_url(create_out.path().join("metadata")).as_str(),
+            dir_url(create_out.path()).as_str(),
             "-k",
             targets_key.to_str().unwrap(),
             "--root",
@@ -1346,14 +1346,14 @@ async fn remove_role_recursive_command() {
             "--role",
             "A",
             "-i",
-            dir_url(add_b_out.path().join("metadata")).as_str(),
+            dir_url(add_b_out.path()).as_str(),
         ])
         .assert()
         .success();
 
     // Remove B from the repo
     let remove_b_out = TempDir::new().unwrap();
-    let updated_metadata_base_url = &dir_url(update_out.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(update_out.path());
 
     // remove role B from A metadata and sign A meta
     Command::cargo_bin("tuftool")
@@ -1420,7 +1420,7 @@ async fn remove_role_recursive_command() {
             "--role",
             "targets",
             "-i",
-            dir_url(remove_b_out.path().join("metadata")).as_str(),
+            dir_url(remove_b_out.path()).as_str(),
         ])
         .assert()
         .success();
@@ -1428,7 +1428,7 @@ async fn remove_role_recursive_command() {
     // Load the updated repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(update_out.path()),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -1468,7 +1468,7 @@ async fn dubious_role_name() {
 
     // Set new expiration date for the new role
     let expiration = Utc::now().checked_add_signed(days(4)).unwrap();
-    let metadata_base_url = &dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &dir_url(repo_dir.path());
     let meta_out = TempDir::new().unwrap();
 
     // create role A
@@ -1503,7 +1503,7 @@ async fn dubious_role_name() {
             "-o",
             new_repo_dir.path().to_str().unwrap(),
             "-i",
-            dir_url(meta_out.path().join("metadata")).as_str(),
+            dir_url(meta_out.path()).as_str(),
             "-k",
             root_key.to_str().unwrap(),
             "--root",
@@ -1532,7 +1532,7 @@ async fn dubious_role_name() {
         .success();
 
     // Load the updated repo
-    let updated_metadata_base_url = &dir_url(new_repo_dir.path().join("metadata"));
+    let updated_metadata_base_url = &dir_url(new_repo_dir.path());
     let updated_targets_base_url = &dir_url(new_repo_dir.path().join("targets"));
     let repo = RepositoryLoader::new(
         &tokio::fs::read(&root_json).await.unwrap(),
@@ -1578,7 +1578,7 @@ async fn dubious_role_name() {
             "-o",
             add_b_out.path().to_str().unwrap(),
             "-i",
-            dir_url(create_out.path().join("metadata")).as_str(),
+            dir_url(create_out.path()).as_str(),
             "-k",
             targets_key.to_str().unwrap(),
             "--root",
@@ -1600,12 +1600,10 @@ async fn dubious_role_name() {
     // Make sure the metadata files are in the right directory
     assert!(add_b_out
         .path()
-        .join("metadata")
         .join(format!("{}.json", dubious_name_encoded))
         .is_file());
     assert!(add_b_out
         .path()
-        .join("metadata")
         .join(format!("{}.json", funny_name_encoded))
         .is_file());
 
@@ -1641,7 +1639,7 @@ async fn dubious_role_name() {
             "--role",
             dubious_role_name,
             "-i",
-            dir_url(add_b_out.path().join("metadata")).as_str(),
+            dir_url(add_b_out.path()).as_str(),
         ])
         .assert()
         .success();
@@ -1649,7 +1647,7 @@ async fn dubious_role_name() {
     // Load the updated repo
     let repo = RepositoryLoader::new(
         &tokio::fs::read(root_json).await.unwrap(),
-        dir_url(update_out.path().join("metadata")),
+        dir_url(update_out.path()),
         dir_url(update_out.path().join("targets")),
     )
     .load()
@@ -1662,12 +1660,10 @@ async fn dubious_role_name() {
     // Make sure the metadata files are in the right directory
     assert!(update_out
         .path()
-        .join("metadata")
         .join(format!("{}.{}.json", 2, dubious_name_encoded))
         .is_file());
     assert!(update_out
         .path()
-        .join("metadata")
         .join(format!("{}.{}.json", 1, funny_name_encoded))
         .is_file());
 }

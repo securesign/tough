@@ -8,6 +8,7 @@ use crate::source::parse_key_source;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use snafu::ResultExt;
+use std::fs;
 use std::num::{NonZeroU64, NonZeroUsize};
 use std::path::PathBuf;
 use tough::editor::signed::PathExists;
@@ -117,7 +118,6 @@ impl CreateArgs {
 
         let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
 
-        let metadata_dir = &self.outdir.join("metadata");
         let targets_outdir = &self.outdir.join("targets");
         signed_repo
             .link_targets(&self.targets_indir, targets_outdir, self.target_path_exists)
@@ -127,11 +127,13 @@ impl CreateArgs {
                 outdir: targets_outdir,
             })?;
         signed_repo
-            .write(metadata_dir)
+            .write(&self.outdir)
             .await
             .context(error::WriteRepoSnafu {
-                directory: metadata_dir,
+                directory: &self.outdir,
             })?;
+        let root_path = &self.outdir.join("root.json");
+        let _ = fs::copy(&self.root, root_path);
 
         Ok(())
     }

@@ -134,12 +134,11 @@ impl TransferMetadataArgs {
 
         let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
 
-        let metadata_dir = &self.outdir.join("metadata");
         signed_repo
-            .write(metadata_dir)
+            .write(&self.outdir)
             .await
             .context(error::WriteRepoSnafu {
-                directory: metadata_dir,
+                directory: &self.outdir,
             })?;
 
         Ok(())

@@ -120,7 +120,7 @@ fn download_file_transport() {
 
 fn download_expired_repo(outdir: &Path, repo_dir: &TempDir, allow_expired_repo: bool) -> Assert {
     let root_json = test_utils::test_data().join("simple-rsa").join("root.json");
-    let metadata_base_url = &test_utils::dir_url(repo_dir.path().join("metadata"));
+    let metadata_base_url = &test_utils::dir_url(&repo_dir);
     let targets_base_url = &test_utils::dir_url(repo_dir.path().join("targets"));
     let mut cmd = Command::cargo_bin("tuftool").unwrap();
     cmd.args([

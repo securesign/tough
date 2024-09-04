@@ -9,6 +9,7 @@ use crate::source::parse_key_source;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use snafu::{OptionExt, ResultExt};
+use std::fs;
 use std::num::{NonZeroU64, NonZeroUsize};
 use std::path::{Path, PathBuf};
 use tough::editor::signed::PathExists;
@@ -209,13 +210,15 @@ impl UpdateArgs {
         };
 
         // Write the metadata to the outdir
-        let metadata_dir = &self.outdir.join("metadata");
         signed_repo
-            .write(metadata_dir)
+            .write(&self.outdir)
             .await
             .context(error::WriteRepoSnafu {
-                directory: metadata_dir,
+                directory: &self.outdir,
             })?;
+
+        let root_path = &self.outdir.join("root.json");
+        let _ = fs::copy(&self.root, root_path);
 
         Ok(())
     }
