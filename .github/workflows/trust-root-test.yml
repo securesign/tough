@@ -14,7 +14,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - run: env
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
         with:
@@ -25,6 +24,8 @@ jobs:
           restore-keys: |
             ${{ hashFiles('.github/cache_bust') }}
       - run: rustup default stable
+      # This directory should already be in PATH for the default Github Action runners, but might not exist
+      - run: mkdir -p ${HOME}/.local/bin/
       - run: cargo build --release && cp target/release/tuftool ${HOME}/.local/bin/
       - run: |
           ./rhtas/tuf-repo-init.sh --export-keys file:///tmp/exported-keys \
