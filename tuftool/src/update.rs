@@ -201,7 +201,7 @@ impl UpdateArgs {
         if let Some(ref targets_indir) = self.targets_indir {
             let targets_outdir = &self.outdir.join("targets");
             signed_repo
-                .link_targets(targets_indir, targets_outdir, self.target_path_exists)
+                .copy_targets(targets_indir, targets_outdir, self.target_path_exists)
                 .await
                 .context(error::LinkTargetsSnafu {
                     indir: &targets_indir,
