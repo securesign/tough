@@ -264,7 +264,7 @@ impl RhtasArgs {
         if let Some(path) = target_path {
             let targets_outdir = &self.outdir.join("targets");
             signed_repo
-                .link_targets(path, targets_outdir, self.target_path_exists)
+                .copy_targets(path, targets_outdir, self.target_path_exists)
                 .await
                 .context(error::LinkTargetsSnafu {
                     indir: path,
