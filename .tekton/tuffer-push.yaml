@@ -22,7 +22,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhtas-tenant/tough/tuffer:{{revision}}
+    value: quay.io/securesign/tuffer:{{revision}}}
   - name: dockerfile
     value: Dockerfile.tuffer
   pipelineSpec:
