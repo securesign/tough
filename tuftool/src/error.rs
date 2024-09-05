@@ -94,6 +94,13 @@ pub(crate) enum Error {
         backtrace: Backtrace,
     },
 
+    #[snafu(display("Failed to resolve symlink '{}': {}", path.display(), source))]
+    ResolveSymlink {
+        path: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
     #[snafu(display("Failed to remove target '{}': {}", name, source))]
     RemoveTarget {
         name: String,
