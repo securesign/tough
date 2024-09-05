@@ -263,8 +263,23 @@ impl RhtasArgs {
         }
         if let Some(path) = target_path {
             let targets_outdir = &self.outdir.join("targets");
+            let resolved_target_path = if self.follow {
+                tokio::fs::canonicalize(path)
+                    .await
+                    .context(error::ResolveSymlinkSnafu { path })?
+            } else {
+                path.clone()
+            };
+            let symlink_name = path.file_name().unwrap();
+            let target_name = symlink_name.to_string_lossy().to_string();
+            let target_name = TargetName::new(target_name);
             signed_repo
-                .copy_targets(path, targets_outdir, self.target_path_exists)
+                .copy_target(
+                    &resolved_target_path,
+                    targets_outdir,
+                    self.target_path_exists,
+                    Some(&target_name.unwrap()),
+                )
                 .await
                 .context(error::LinkTargetsSnafu {
                     indir: path,
