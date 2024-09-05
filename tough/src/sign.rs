@@ -175,11 +175,9 @@ pub fn decrypt_key(
     let decrypted_private_key_document =
         encrypted_private_key_document.decrypt(password.as_bytes())?;
     let decrypted_key_bytes: Vec<u8> = decrypted_private_key_document.as_ref().to_vec();
-    let decrypted_key_base64 = STANDARD.encode(&decrypted_key_bytes);
-    let pem_key = format!(
-        "-----BEGIN PRIVATE KEY-----\n{}\n-----END PRIVATE KEY-----",
-        decrypted_key_base64
-    );
+    let decrypted_key_base64 = STANDARD.encode(decrypted_key_bytes);
+    let pem_key =
+        format!("-----BEGIN PRIVATE KEY-----\n{decrypted_key_base64}\n-----END PRIVATE KEY-----");
     let pem_key_bytes = pem_key.as_bytes().to_vec();
     Ok(pem_key_bytes)
 }

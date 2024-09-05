@@ -436,7 +436,7 @@ pub(crate) enum Error {
         source: tokio::task::JoinError,
         backtrace: Backtrace,
     },
-    
+
     #[snafu(display("More passwords provided than key sources"))]
     MorePasswords { backtrace: Backtrace },
 
