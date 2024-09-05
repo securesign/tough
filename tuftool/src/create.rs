@@ -120,7 +120,7 @@ impl CreateArgs {
 
         let targets_outdir = &self.outdir.join("targets");
         signed_repo
-            .link_targets(&self.targets_indir, targets_outdir, self.target_path_exists)
+            .copy_targets(&self.targets_indir, targets_outdir, self.target_path_exists)
             .await
             .context(error::LinkTargetsSnafu {
                 indir: &self.targets_indir,
