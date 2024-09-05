@@ -38,7 +38,7 @@ export FULCIO_CERT=""
 export TSA_CERT=""
 export CTLOG_KEY=""
 export REKOR_KEY=""
-export METADATA_EXPIRATION="in 56 weeks"
+export METADATA_EXPIRATION="in 52 weeks"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -163,6 +163,7 @@ echo "Adding trust root targets ..."
 if [ -n "${FULCIO_CERT}" ]; then
   echo "Adding Fulcio certificate chain ${FULCIO_CERT} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -182,6 +183,7 @@ fi
 if [ -n "${TSA_CERT}" ]; then
   echo "Adding TSA certificate chain ${TSA_CERT} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -201,6 +203,7 @@ fi
 if [ -n "${CTLOG_KEY}" ]; then
   echo "Adding CTLog public key ${CTLOG_KEY} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -220,6 +223,7 @@ fi
 if [ -n "${REKOR_KEY}" ]; then
   echo "Adding Rekor public key ${REKOR_KEY} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -244,7 +248,7 @@ if [ "${EXPORT_KEYS:0:7}" = "file://" ]; then
 elif [ -n "${EXPORT_KEYS}" ]; then
   echo "Exporting keys to k8s secret ${EXPORT_KEYS} ..."
   export AUTHDIR="/var/run/secrets/kubernetes.io/serviceaccount"
-  curl -X POST \
+  curl --fail -X POST \
     --cacert "${AUTHDIR}/ca.crt" \
     -H "Authorization: Bearer $(cat ${AUTHDIR}/token)" \
     --header 'Content-Type: application/json' \
@@ -269,6 +273,6 @@ fi
 
 echo "Copying the TUF repository to final location ${TUF_REPO_PATH} ..."
 # TODO: fix this based on changes in layout of tuftool output
-cp -R "${OUTDIR}" "${TUF_REPO_PATH}"
+cp -R "${OUTDIR}/." "${TUF_REPO_PATH}"
 
 echo "Finished successfully!"
