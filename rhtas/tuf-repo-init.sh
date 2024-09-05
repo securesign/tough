@@ -163,6 +163,7 @@ echo "Adding trust root targets ..."
 if [ -n "${FULCIO_CERT}" ]; then
   echo "Adding Fulcio certificate chain ${FULCIO_CERT} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -182,6 +183,7 @@ fi
 if [ -n "${TSA_CERT}" ]; then
   echo "Adding TSA certificate chain ${TSA_CERT} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -201,6 +203,7 @@ fi
 if [ -n "${CTLOG_KEY}" ]; then
   echo "Adding CTLog public key ${CTLOG_KEY} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
@@ -220,6 +223,7 @@ fi
 if [ -n "${REKOR_KEY}" ]; then
   echo "Adding Rekor public key ${REKOR_KEY} ..."
   tuftool rhtas \
+    --follow \
     --root "${ROOT}" \
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
