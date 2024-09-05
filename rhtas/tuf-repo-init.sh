@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -Eeuo pipefail
+set -xEeuo pipefail
 
 usage() {
   cat << EOF
@@ -38,7 +38,7 @@ export FULCIO_CERT=""
 export TSA_CERT=""
 export CTLOG_KEY=""
 export REKOR_KEY=""
-export METADATA_EXPIRATION="in 56 weeks"
+export METADATA_EXPIRATION="in 52 weeks"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -244,7 +244,7 @@ if [ "${EXPORT_KEYS:0:7}" = "file://" ]; then
 elif [ -n "${EXPORT_KEYS}" ]; then
   echo "Exporting keys to k8s secret ${EXPORT_KEYS} ..."
   export AUTHDIR="/var/run/secrets/kubernetes.io/serviceaccount"
-  curl -X POST \
+  curl --fail -X POST \
     --cacert "${AUTHDIR}/ca.crt" \
     -H "Authorization: Bearer $(cat ${AUTHDIR}/token)" \
     --header 'Content-Type: application/json' \
@@ -269,6 +269,6 @@ fi
 
 echo "Copying the TUF repository to final location ${TUF_REPO_PATH} ..."
 # TODO: fix this based on changes in layout of tuftool output
-cp -R "${OUTDIR}" "${TUF_REPO_PATH}"
+cp -R "${OUTDIR}/." "${TUF_REPO_PATH}"
 
 echo "Finished successfully!"
