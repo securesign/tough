@@ -250,7 +250,7 @@ elif [ -n "${EXPORT_KEYS}" ]; then
 
   export AUTHDIR="/var/run/secrets/kubernetes.io/serviceaccount"
   export K8SCACERT="${AUTHDIR}/ca.crt"
-  export K8SSECRETS="https://kubernetes.default/api/v1/namespaces/${NAMESPACE}/secrets"
+  export K8SSECRETS="https://kubernetes.default.svc/api/v1/namespaces/${NAMESPACE}/secrets"
   export K8SAUTH=""
   export SECRET_CONTENT=""
 
