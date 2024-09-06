@@ -247,13 +247,15 @@ if [ "${EXPORT_KEYS:0:7}" = "file://" ]; then
   cp "${KEYDIR}/"* "${EXPORT_DIR}"
 elif [ -n "${EXPORT_KEYS}" ]; then
   echo "Exporting keys to k8s secret ${EXPORT_KEYS} ..."
+
   export AUTHDIR="/var/run/secrets/kubernetes.io/serviceaccount"
-  curl --fail -X POST \
-    --cacert "${AUTHDIR}/ca.crt" \
-    -H "Authorization: Bearer $(cat ${AUTHDIR}/token)" \
-    --header 'Content-Type: application/json' \
-    --data @- \
-    "https://kubernetes.default/api/v1/namespaces/${NAMESPACE}/secrets" <<EOF
+  export K8SCACERT="${AUTHDIR}/ca.crt"
+  export K8SSECRETS="https://kubernetes.default/api/v1/namespaces/${NAMESPACE}/secrets"
+  export K8SAUTH=""
+  export SECRET_CONTENT=""
+
+  K8SAUTH="Authorization: Bearer $(cat ${AUTHDIR}/token)"
+  SECRET_CONTENT=$(cat <<EOF
 {
  "apiVersion":"v1",
  "kind" :"Secret",
@@ -267,6 +269,36 @@ elif [ -n "${EXPORT_KEYS}" ]; then
   }
 }
 EOF
+)
+  export KEYS_CREATE_HTTP_STATUS="-1"
+  # if the secret exists, replace it with the content, otherwise create it
+  KEYS_CREATE_HTTP_STATUS=$(curl -X POST \
+    --silent \
+    --output /dev/null \
+    --write-out "%{http_code}" \
+    --cacert "${K8SCACERT}" \
+    -H "${K8SAUTH}" \
+    --header 'Content-Type: application/json' \
+    --data @- \
+    "${K8SSECRETS}" <<EOF
+${SECRET_CONTENT}
+EOF
+    )
+
+  if [ "${KEYS_CREATE_HTTP_STATUS}" = "409" ]; then
+    curl --fail -X PUT \
+      --output /dev/null \
+      --cacert "${K8SCACERT}" \
+      -H "${K8SAUTH}" \
+      --header 'Content-Type: application/json' \
+      --data @- \
+      "${K8SSECRETS}/${EXPORT_KEYS}" <<EOF
+${SECRET_CONTENT}
+EOF
+  elif [ "${KEYS_CREATE_HTTP_STATUS:0:1}" != "2" ]; then
+    echo "Bad HTTP status when creating K8S secret ${EXPORT_KEYS}: ${KEYS_CREATE_HTTP_STATUS}"
+    exit 1
+  fi
 else
   echo "Key export location not specified, not exporting keys"
 fi
