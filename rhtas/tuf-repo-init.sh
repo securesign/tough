@@ -155,7 +155,6 @@ tuftool create \
   --snapshot-version 1 \
   --timestamp-expires "${METADATA_EXPIRATION}" \
   --timestamp-version 1 \
-  --force-version \
   --outdir "${OUTDIR}"
 
 echo "Adding trust root targets ..."
