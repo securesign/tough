@@ -71,48 +71,51 @@ pub(crate) struct RhtasArgs {
     fulcio_target: Option<PathBuf>,
 
     /// Status for the Fulcio target
-    #[arg(long, default_value = "Active")]
-    fulcio_status: String,
+    #[arg(long)]
+    fulcio_status: Option<String>,
 
-    /// URI for the Fulcio target
-    #[arg(long, default_value = "https://fulcio.sigstore.dev")]
-    fulcio_uri: String,
+    /// URI for the Fulcio target.
+    /// Example: <https://fulcio.sigstore.dev>
+    #[arg(long)]
+    fulcio_uri: Option<String>,
 
     /// Path to the new Ctlog target file
     #[arg(long = "set-ctlog-target")]
     ctlog_target: Option<PathBuf>,
 
     /// Status for the Ctlog certificate
-    #[arg(long, default_value = "Active")]
-    ctlog_status: String,
+    #[arg(long)]
+    ctlog_status: Option<String>,
 
-    /// URI for the Ctlog certificate
-    #[arg(long, default_value = "https://ctfe.sigstore.dev/test")]
-    ctlog_uri: String,
+    /// URI for the Ctlog certificate.
+    /// Example: <https://ctfe.sigstore.dev/test>
+    #[arg(long)]
+    ctlog_uri: Option<String>,
 
     /// Path to the new rekor target file
     #[arg(long = "set-rekor-target")]
     rekor_target: Option<PathBuf>,
 
     /// Status for the rekor certificate
-    #[arg(long, default_value = "Active")]
-    rekor_status: String,
+    #[arg(long)]
+    rekor_status: Option<String>,
 
-    /// URI for the rekor certificate
-    #[arg(long, default_value = "https://rekor.sigstore.dev")]
-    rekor_uri: String,
+    /// URI for the rekor certificate.
+    /// Example: <https://rekor.sigstore.dev>
+    #[arg(long)]
+    rekor_uri: Option<String>,
 
     /// Path to the new Timestamp Authority target file
     #[arg(long = "set-tsa-target")]
     tsa_target: Option<PathBuf>,
 
     /// Status for the tsa certificate
-    #[arg(long, default_value = "Active")]
-    tsa_status: String,
+    #[arg(long)]
+    tsa_status: Option<String>,
 
     /// URI for the tsa certificate
-    #[arg(long, default_value = "")]
-    tsa_uri: String,
+    #[arg(long)]
+    tsa_uri: Option<String>,
 
     /// Expiration of targets.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
@@ -153,6 +156,63 @@ WARNING: `--allow-expired-repo` was passed; this is unsafe and will not establis
 
 impl RhtasArgs {
     pub(crate) async fn run(&self) -> Result<()> {
+        if self.fulcio_target.is_some()
+            && (self.ctlog_uri.is_some()
+                || self.rekor_uri.is_some()
+                || self.tsa_uri.is_some()
+                || self.ctlog_status.is_some()
+                || self.rekor_status.is_some()
+                || self.tsa_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-fulcio-target only accepts --fulcio-uri and --fulcio-status."
+                    .to_string(),
+            }
+            .fail();
+        }
+
+        if self.ctlog_target.is_some()
+            && (self.fulcio_uri.is_some()
+                || self.rekor_uri.is_some()
+                || self.tsa_uri.is_some()
+                || self.fulcio_status.is_some()
+                || self.rekor_status.is_some()
+                || self.tsa_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-ctlog-target only accepts --ctlog-uri and --ctlog-status.".to_string(),
+            }
+            .fail();
+        }
+
+        if self.rekor_target.is_some()
+            && (self.fulcio_uri.is_some()
+                || self.ctlog_uri.is_some()
+                || self.tsa_uri.is_some()
+                || self.fulcio_status.is_some()
+                || self.ctlog_status.is_some()
+                || self.tsa_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-rekor-target only accepts --rekor-uri and --rekor-status.".to_string(),
+            }
+            .fail();
+        }
+
+        if self.tsa_target.is_some()
+            && (self.fulcio_uri.is_some()
+                || self.ctlog_uri.is_some()
+                || self.rekor_uri.is_some()
+                || self.fulcio_status.is_some()
+                || self.ctlog_status.is_some()
+                || self.rekor_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-tsa-target only accepts --tsa-uri and --tsa-status.".to_string(),
+            }
+            .fail();
+        }
+
         let expiration_enforcement = if self.allow_expired_repo {
             expired_repo_warning(&self.outdir);
             ExpirationEnforcement::Unsafe
@@ -315,7 +375,7 @@ impl RhtasArgs {
         if let Some(ref fulcio_target_path) = self.fulcio_target {
             let mut fulcio_target = build_targets(fulcio_target_path, self.follow).await?;
 
-            if self.fulcio_status != "Active" && self.fulcio_status != "Expired" {
+            if !matches!(self.fulcio_status.as_deref(), Some("Active" | "Expired")) {
                 return error::NoValidTargetStatusSnafu {}.fail();
             }
             let custom_sigstore_metadata = json!({
@@ -340,7 +400,7 @@ impl RhtasArgs {
         if let Some(ref ctlog_target_path) = self.ctlog_target {
             let mut ctlog_target = build_targets(ctlog_target_path, self.follow).await?;
 
-            if self.ctlog_status != "Active" && self.ctlog_status != "Expired" {
+            if !matches!(self.ctlog_status.as_deref(), Some("Active" | "Expired")) {
                 return error::NoValidTargetStatusSnafu {}.fail();
             }
             let custom_sigstore_metadata = json!({
@@ -365,7 +425,7 @@ impl RhtasArgs {
         if let Some(ref rekor_target_path) = self.rekor_target {
             let mut rekor_target = build_targets(rekor_target_path, self.follow).await?;
 
-            if self.rekor_status != "Active" && self.rekor_status != "Expired" {
+            if !matches!(self.rekor_status.as_deref(), Some("Active" | "Expired")) {
                 return error::NoValidTargetStatusSnafu {}.fail();
             }
             let custom_sigstore_metadata = json!({
@@ -390,7 +450,7 @@ impl RhtasArgs {
         if let Some(ref tsa_target_path) = self.tsa_target {
             let mut tsa_target = build_targets(tsa_target_path, self.follow).await?;
 
-            if self.tsa_status != "Active" && self.tsa_status != "Expired" {
+            if !matches!(self.tsa_status.as_deref(), Some("Active" | "Expired")) {
                 return error::NoValidTargetStatusSnafu {}.fail();
             }
             let custom_sigstore_metadata = json!({
