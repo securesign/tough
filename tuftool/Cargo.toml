@@ -10,9 +10,10 @@ edition = "2018"
 
 [features]
 integ = []
-default = ["aws-sdk-rust"]
+default = ["aws-sdk-rust","sigstore_protobuf_specs"]
 aws-sdk-rust = ["aws-sdk-rust-rustls"]
 aws-sdk-rust-rustls = ["aws-config/rustls", "aws-sdk-ssm/rustls", "aws-sdk-kms/rustls", ]
+sigstore = ["sigstore_protobuf_specs"]
 
 [dependencies]
 aws-config = "1"
@@ -31,7 +32,11 @@ ring = { version = "0.17", features = ["std"] }
 serde = "1"
 serde_json = "1"
 simplelog = "0.12"
+sigstore = { git = "https://github.com/fghanmi/sigstore-rs.git", branch = "target_v1" }
+sigstore_protobuf_specs = { version = "0.3.2", optional = true }
 snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
+sha2 = "0.9"
+prost-types = "0.12.6"
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 tough = { version = "0.17", path = "../tough", features = ["http"] }

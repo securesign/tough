@@ -126,11 +126,17 @@ tuftool rhtas \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/
 
-# delete a target
+# delete a target: --delete-<target>-target
 tuftool rhtas \
    --root "${ROOT}" \
    --key "${WRK}/keys/root.pem" \
-   --delete-target "ctfe.pub" \
+   --delete-ctlog-target "ctfe.pub" \
+   --targets-expires 'in 3 weeks' \
+   --targets-version 4 \
+   --snapshot-expires 'in 3 weeks' \
+   --snapshot-version 4 \
+   --timestamp-expires 'in 1 week' \
+   --timestamp-version 4 \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/
 ```

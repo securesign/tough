@@ -6,7 +6,7 @@
 #![allow(clippy::default_trait_access)]
 
 use snafu::{Backtrace, Snafu};
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
@@ -108,6 +108,13 @@ pub(crate) enum Error {
     RemoveTarget {
         name: String,
         source: tough::error::Error,
+        backtrace: Backtrace,
+    },
+
+    #[snafu(display("Failed to read file '{}': {}", path.display(), source))]
+    FileRead {
+        path: PathBuf,
+        source: io::Error,
         backtrace: Backtrace,
     },
 
