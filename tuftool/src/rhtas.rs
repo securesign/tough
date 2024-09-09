@@ -177,6 +177,7 @@ impl RhtasArgs {
         .await
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn update_metadata(&self, mut editor: RepositoryEditor) -> Result<()> {
         let mut keys = Vec::new();
         for source in &self.keys {
@@ -185,21 +186,13 @@ impl RhtasArgs {
         }
 
         if self.force_version {
-            if self.snapshot_version.is_some() {
-                let _ = editor.snapshot_version(self.snapshot_version.unwrap());
-            }
-            if self.targets_version.is_some() {
-                let _ = editor.targets_version(self.targets_version.unwrap());
-            }
-            if self.timestamp_version.is_some() {
-                let _ = editor.timestamp_version(self.timestamp_version.unwrap());
-            }
+            let _ = self.update_metadata_version(&mut editor).await;
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
         {
-            println!("Missing force-version flag to change metadata version forcefully.");
-        };
+            return error::ForceVersionMissingSnafu {}.fail();
+        }
 
         if let Some(_expires) = self.targets_expires {
             let _ = editor.targets_expires(self.targets_expires.unwrap());
@@ -455,6 +448,19 @@ impl RhtasArgs {
 
         if !target_found {
             return error::TargetFileDoesNotExistSnafu {}.fail();
+        }
+        Ok(())
+    }
+
+    async fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.snapshot_version.is_some() {
+            let _ = editor.snapshot_version(self.snapshot_version.unwrap());
+        }
+        if self.targets_version.is_some() {
+            let _ = editor.targets_version(self.targets_version.unwrap());
+        }
+        if self.timestamp_version.is_some() {
+            let _ = editor.timestamp_version(self.timestamp_version.unwrap());
         }
         Ok(())
     }
