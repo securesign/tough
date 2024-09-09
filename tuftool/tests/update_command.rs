@@ -100,6 +100,7 @@ async fn update_command_without_new_targets() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
         ])
         .assert()
         .success();
@@ -118,12 +119,12 @@ async fn update_command_without_new_targets() {
     assert_eq!(repo.targets().signed.targets.len(), 3);
 
     // Ensure all the metadata has been updated
-    assert_eq!(repo.targets().signed.version.get(), new_targets_version);
     assert_eq!(repo.targets().signed.expires, new_targets_expiration);
-    assert_eq!(repo.snapshot().signed.version.get(), new_snapshot_version);
+    assert_eq!(repo.targets().signed.version.get(), new_targets_version);
     assert_eq!(repo.snapshot().signed.expires, new_snapshot_expiration);
-    assert_eq!(repo.timestamp().signed.version.get(), new_timestamp_version);
+    assert_eq!(repo.snapshot().signed.version.get(), new_snapshot_version);
     assert_eq!(repo.timestamp().signed.expires, new_timestamp_expiration);
+    assert_eq!(repo.timestamp().signed.version.get(), new_timestamp_version);
 }
 
 #[tokio::test]
@@ -175,6 +176,7 @@ async fn update_command_with_new_targets() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
         ])
         .assert()
         .success();
@@ -210,12 +212,12 @@ async fn update_command_with_new_targets() {
     );
 
     // Ensure all the metadata has been updated
-    assert_eq!(repo.targets().signed.version.get(), new_targets_version);
     assert_eq!(repo.targets().signed.expires, new_targets_expiration);
-    assert_eq!(repo.snapshot().signed.version.get(), new_snapshot_version);
+    assert_eq!(repo.targets().signed.version.get(), new_targets_version);
     assert_eq!(repo.snapshot().signed.expires, new_snapshot_expiration);
-    assert_eq!(repo.timestamp().signed.version.get(), new_timestamp_version);
+    assert_eq!(repo.snapshot().signed.version.get(), new_snapshot_version);
     assert_eq!(repo.timestamp().signed.expires, new_timestamp_expiration);
+    assert_eq!(repo.timestamp().signed.version.get(), new_timestamp_version);
 }
 
 #[test]
@@ -330,6 +332,7 @@ fn updates_expired_repo(
         timestamp_expiration.to_rfc3339().as_str(),
         "--timestamp-version",
         format!("{}", timestamp_version).as_str(),
+        "--force-version",
     ]);
     let assert = if allow_expired_repo {
         cmd.arg("--allow-expired-repo").assert()

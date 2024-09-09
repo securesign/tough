@@ -62,11 +62,7 @@ pub(crate) struct UpdateArgs {
     /// Expiration of snapshot.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
     #[arg(long, value_parser = parse_datetime)]
-    snapshot_expires: DateTime<Utc>,
-
-    /// Version of snapshot.json file
-    #[arg(long)]
-    snapshot_version: NonZeroU64,
+    snapshot_expires: Option<DateTime<Utc>>,
 
     /// Directory of targets
     #[arg(short, long = "add-targets")]
@@ -81,20 +77,28 @@ pub(crate) struct UpdateArgs {
     /// Expiration of targets.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
     #[arg(long, value_parser = parse_datetime)]
-    targets_expires: DateTime<Utc>,
-
-    /// Version of targets.json file
-    #[arg(long)]
-    targets_version: NonZeroU64,
+    targets_expires: Option<DateTime<Utc>>,
 
     /// Expiration of timestamp.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
     #[arg(long, value_parser = parse_datetime)]
-    timestamp_expires: DateTime<Utc>,
+    timestamp_expires: Option<DateTime<Utc>>,
 
-    /// Version of timestamp.json file
+    /// Forcibly update metadata version, usage not recommended
     #[arg(long)]
-    timestamp_version: NonZeroU64,
+    force_version: bool,
+
+    /// Version of snapshot.json
+    #[arg(long)]
+    snapshot_version: Option<NonZeroU64>,
+
+    /// Version of targets.json
+    #[arg(long)]
+    targets_version: Option<NonZeroU64>,
+
+    /// Version of timestamp.json
+    #[arg(long)]
+    timestamp_version: Option<NonZeroU64>,
 }
 
 fn expired_repo_warning<P: AsRef<Path>>(path: P) {
@@ -141,15 +145,26 @@ impl UpdateArgs {
             keys.push(key_source);
         }
 
-        editor
-            .targets_version(self.targets_version)
-            .context(error::DelegationStructureSnafu)?
-            .targets_expires(self.targets_expires)
-            .context(error::DelegationStructureSnafu)?
-            .snapshot_version(self.snapshot_version)
-            .snapshot_expires(self.snapshot_expires)
-            .timestamp_version(self.timestamp_version)
-            .timestamp_expires(self.timestamp_expires);
+        if self.force_version {
+            self.update_metadata_version(&mut editor);
+        } else if self.snapshot_version.is_some()
+            || self.targets_version.is_some()
+            || self.timestamp_version.is_some()
+        {
+            return error::ForceVersionMissingSnafu {}.fail();
+        }
+
+        if let Some(_expires) = self.targets_expires {
+            let _ = editor.targets_expires(self.targets_expires.unwrap());
+        }
+
+        if let Some(_expires) = self.snapshot_expires {
+            let _ = editor.snapshot_expires(self.snapshot_expires.unwrap());
+        }
+
+        if let Some(_expires) = self.timestamp_expires {
+            let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
+        }
 
         // If the "add-targets" argument was passed, build a list of targets
         // and add them to the repository. If a user specifies job count we
@@ -221,5 +236,17 @@ impl UpdateArgs {
         let _ = fs::copy(&self.root, root_path);
 
         Ok(())
+    }
+
+    fn update_metadata_version(&self, editor: &mut RepositoryEditor) {
+        if self.snapshot_version.is_some() {
+            let _ = editor.snapshot_version(self.snapshot_version.unwrap());
+        }
+        if self.targets_version.is_some() {
+            let _ = editor.targets_version(self.targets_version.unwrap());
+        }
+        if self.timestamp_version.is_some() {
+            let _ = editor.timestamp_version(self.timestamp_version.unwrap());
+        }
     }
 }

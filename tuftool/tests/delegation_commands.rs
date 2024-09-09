@@ -235,6 +235,7 @@ async fn create_add_role_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "A",
             "-i",
@@ -404,6 +405,7 @@ async fn update_target_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "A",
             "-i",
@@ -538,7 +540,7 @@ async fn add_key_command() {
             "-e",
             expiration.to_rfc3339().as_str(),
             "-v",
-            "1",
+            "3",
             "--delegated-role",
             "A",
         ])
@@ -575,6 +577,7 @@ async fn add_key_command() {
             expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             "1",
+            "--force-version",
         ])
         .assert()
         .success();
@@ -662,6 +665,7 @@ async fn add_key_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "A",
             "-i",
@@ -781,7 +785,7 @@ fn remove_key_command() {
             "-e",
             expiration.to_rfc3339().as_str(),
             "-v",
-            "1",
+            "3",
             "--keyid",
             "9d25bd7d096386713d823447e9920ea4b807bd95d1bf7a0d05a00979ab5eec00",
             "-k",
@@ -826,6 +830,7 @@ fn remove_key_command() {
             expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             "1",
+            "--force-version",
         ])
         .assert()
         .success();
@@ -1067,6 +1072,7 @@ async fn remove_role_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "A",
             "-i",
@@ -1140,6 +1146,7 @@ async fn remove_role_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "A",
             "-i",
@@ -1343,6 +1350,7 @@ async fn remove_role_recursive_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "A",
             "-i",
@@ -1417,6 +1425,7 @@ async fn remove_role_recursive_command() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             "targets",
             "-i",
@@ -1636,6 +1645,7 @@ async fn dubious_role_name() {
             new_timestamp_expiration.to_rfc3339().as_str(),
             "--timestamp-version",
             format!("{}", new_timestamp_version).as_str(),
+            "--force-version",
             "--role",
             dubious_role_name,
             "-i",

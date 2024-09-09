@@ -176,6 +176,7 @@ if [ -n "${FULCIO_CERT}" ]; then
     --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
     --timestamp-version 1 \
+    --force-version \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
@@ -196,6 +197,7 @@ if [ -n "${TSA_CERT}" ]; then
     --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
     --timestamp-version 1 \
+    --force-version \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
@@ -216,6 +218,7 @@ if [ -n "${CTLOG_KEY}" ]; then
     --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
     --timestamp-version 1 \
+    --force-version \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
@@ -236,6 +239,7 @@ if [ -n "${REKOR_KEY}" ]; then
     --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
     --timestamp-version 1 \
+    --force-version \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
