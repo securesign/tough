@@ -145,21 +145,13 @@ impl UpdateArgs {
         }
 
         if self.force_version {
-            if self.snapshot_version.is_some() {
-                let _ = editor.snapshot_version(self.snapshot_version.unwrap());
-            }
-            if self.targets_version.is_some() {
-                let _ = editor.targets_version(self.targets_version.unwrap());
-            }
-            if self.timestamp_version.is_some() {
-                let _ = editor.timestamp_version(self.timestamp_version.unwrap());
-            }
+            let _ = self.update_metadata_version(&mut editor).await;
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
         {
-            println!("Missing force-version flag to change metadata version forcefully.");
-        };
+            return error::ForceVersionMissingSnafu {}.fail();
+        }
 
         if let Some(_expires) = self.targets_expires {
             let _ = editor.targets_expires(self.targets_expires.unwrap());
@@ -171,7 +163,7 @@ impl UpdateArgs {
 
         if let Some(_expires) = self.timestamp_expires {
             let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
-        };
+        }
 
         // If the "add-targets" argument was passed, build a list of targets
         // and add them to the repository. If a user specifies job count we
@@ -242,6 +234,19 @@ impl UpdateArgs {
         let root_path = &self.outdir.join("root.json");
         let _ = fs::copy(&self.root, root_path);
 
+        Ok(())
+    }
+
+    async fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.snapshot_version.is_some() {
+            let _ = editor.snapshot_version(self.snapshot_version.unwrap());
+        }
+        if self.targets_version.is_some() {
+            let _ = editor.targets_version(self.targets_version.unwrap());
+        }
+        if self.timestamp_version.is_some() {
+            let _ = editor.timestamp_version(self.timestamp_version.unwrap());
+        }
         Ok(())
     }
 }

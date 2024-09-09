@@ -171,11 +171,8 @@ if [ -n "${FULCIO_CERT}" ]; then
     --set-fulcio-target "${FULCIO_CERT}" \
     --fulcio-uri "https://fulcio.rhtas" \
     --targets-expires "${METADATA_EXPIRATION}" \
-    --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
-    --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
-    --timestamp-version 1 \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
@@ -191,11 +188,8 @@ if [ -n "${TSA_CERT}" ]; then
     --set-tsa-target "${TSA_CERT}" \
     --tsa-uri "https://tsa.rhtas" \
     --targets-expires "${METADATA_EXPIRATION}" \
-    --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
-    --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
-    --timestamp-version 1 \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
@@ -211,11 +205,8 @@ if [ -n "${CTLOG_KEY}" ]; then
     --set-ctlog-target "${CTLOG_KEY}" \
     --ctlog-uri "https://ctlog.rhtas" \
     --targets-expires "${METADATA_EXPIRATION}" \
-    --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
-    --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
-    --timestamp-version 1 \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
@@ -231,11 +222,8 @@ if [ -n "${REKOR_KEY}" ]; then
     --set-rekor-target "${REKOR_KEY}" \
     --fulcio-uri "https://rekor.rhtas" \
     --targets-expires "${METADATA_EXPIRATION}" \
-    --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
-    --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
-    --timestamp-version 1 \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
 fi
