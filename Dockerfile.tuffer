@@ -21,6 +21,7 @@ COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 COPY rhtas/tuf-repo-init.sh /usr/bin/
 
 ENTRYPOINT ["/usr/bin/tuf-repo-init.sh"]
+USER 1001
 
 LABEL description ="Tuffer is a utility application used for generating an initial trust root for RHTAS"
 LABEL io.k8s.description="Tuffer is a utility application used for generating an initial trust root for RHTAS"
