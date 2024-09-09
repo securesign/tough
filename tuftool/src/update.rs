@@ -83,7 +83,7 @@ pub(crate) struct UpdateArgs {
     /// 7 days'
     #[arg(long, value_parser = parse_datetime)]
     timestamp_expires: Option<DateTime<Utc>>,
-    
+
     /// Forcibly update metadata version, usage not recommended
     #[arg(long)]
     force_version: bool,
