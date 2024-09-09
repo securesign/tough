@@ -196,7 +196,7 @@ if [ -n "${TSA_CERT}" ]; then
     --snapshot-expires "${METADATA_EXPIRATION}" \
     --snapshot-version 1 \
     --timestamp-expires "${METADATA_EXPIRATION}" \
-    --timestamp-version \
+    --timestamp-version 1 \
     --force-version \
     --outdir "${OUTDIR}" \
     --metadata-url "file://${OUTDIR}"
