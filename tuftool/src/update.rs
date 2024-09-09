@@ -145,7 +145,7 @@ impl UpdateArgs {
         }
 
         if self.force_version {
-            let _ = self.update_metadata_version(&mut editor).await;
+            let _ = self.update_metadata_version(&mut editor);
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
@@ -237,7 +237,7 @@ impl UpdateArgs {
         Ok(())
     }
 
-    async fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
+    fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
         if self.snapshot_version.is_some() {
             let _ = editor.snapshot_version(self.snapshot_version.unwrap());
         }
