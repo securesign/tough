@@ -170,6 +170,7 @@ if [ -n "${FULCIO_CERT}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-fulcio-target "${FULCIO_CERT}" \
     --fulcio-uri "https://fulcio.rhtas" \
+    --fulcio-status "Active" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -191,6 +192,7 @@ if [ -n "${TSA_CERT}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-tsa-target "${TSA_CERT}" \
     --tsa-uri "https://tsa.rhtas" \
+    --tsa-status "Active" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -212,6 +214,7 @@ if [ -n "${CTLOG_KEY}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-ctlog-target "${CTLOG_KEY}" \
     --ctlog-uri "https://ctlog.rhtas" \
+    --ctlog-status "Active" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -232,7 +235,8 @@ if [ -n "${REKOR_KEY}" ]; then
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
     --set-rekor-target "${REKOR_KEY}" \
-    --fulcio-uri "https://rekor.rhtas" \
+    --rekor-uri "https://rekor.rhtas" \
+    --rekor-status "Active" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
