@@ -145,7 +145,7 @@ impl UpdateArgs {
         }
 
         if self.force_version {
-            let _ = self.update_metadata_version(&mut editor);
+            self.update_metadata_version(&mut editor);
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
