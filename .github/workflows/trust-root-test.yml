@@ -5,6 +5,11 @@ on:
       - "**.md"
       - ".github/dependabot.yml"
     branches: [develop]
+  push:
+    paths-ignore:
+      - "**.md"
+      - ".github/dependabot.yml"
+    branches: [develop]
 
 env:
   # From-scratch builds with incremental compilation enabled adds unneeded performance and disk overhead.
