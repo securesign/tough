@@ -452,7 +452,7 @@ impl RhtasArgs {
         Ok(())
     }
 
-    fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
+    fn update_metadata_version(&self, editor: &mut RepositoryEditor) {
         if self.snapshot_version.is_some() {
             let _ = editor.snapshot_version(self.snapshot_version.unwrap());
         }
@@ -462,6 +462,5 @@ impl RhtasArgs {
         if self.timestamp_version.is_some() {
             let _ = editor.timestamp_version(self.timestamp_version.unwrap());
         }
-        Ok(())
     }
 }
