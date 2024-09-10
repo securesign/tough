@@ -401,6 +401,7 @@ impl RepositoryEditor {
         self
     }
 
+    /// # Panics
     /// Increment the `Snapshot` version
     pub fn bump_snapshot_version(&mut self) -> &mut Self {
         if let Some(_version) = self.snapshot_version {
@@ -439,6 +440,7 @@ impl RepositoryEditor {
         self
     }
 
+    /// # Panics
     /// Increment the `Timestamp` version
     pub fn bump_timestamp_version(&mut self) -> &mut Self {
         if let Some(_version) = self.timestamp_version {

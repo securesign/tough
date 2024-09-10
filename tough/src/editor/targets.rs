@@ -261,6 +261,7 @@ impl TargetsEditor {
         self
     }
 
+    /// # Panics
     /// Increment the version
     pub fn bump_version(&mut self) -> &mut Self {
         if let Some(_version) = self.version {
