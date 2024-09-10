@@ -21,7 +21,7 @@ use sigstore_protobuf_specs::dev::sigstore::{
     trustroot::v1::{CertificateAuthority, TransparencyLogInstance, TrustedRoot},
 };
 use snafu::{OptionExt, ResultExt};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, Read};
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
@@ -214,7 +214,7 @@ impl RhtasArgs {
 
         self.update_repository_metadata(&mut editor)?;
 
-        let trusted_root_path = self.outdir.join("trusted_root.json");
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
         let mut sigstore_trust_root = RhtasArgs::load_trusted_root(&trusted_root_path)?;
 
         // If the "remove-<target>-target" argument was passed, remove the targets from the repository.
@@ -223,17 +223,6 @@ impl RhtasArgs {
 
         self.set_all_targets(&mut editor, &mut sigstore_trust_root)
             .await?;
-
-        // Save sigstore_trust_root
-        match SigstoreTrustRoot::save_to_file(
-            &sigstore_trust_root,
-            trusted_root_path.clone().as_path(),
-        ) {
-            Ok(()) => {}
-            Err(e) => {
-                eprintln!("Error saving to file: {e}");
-            }
-        }
 
         // If a `Targets` metadata needs to be updated
         if self.role.is_some() && self.indir.is_some() {
@@ -399,10 +388,55 @@ impl RhtasArgs {
         // If the "set-tsa-target" argument was passed, build a target
         // and add it to the repository.
         self.set_tsa_target(editor, sigstore_trust_root).await?;
+
+        // Save then set trust_root
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        match SigstoreTrustRoot::save_to_file(
+            sigstore_trust_root,
+            trusted_root_path.clone().as_path(),
+        ) {
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!("Error saving to file: {e}");
+            }
+        }
+        self.set_trust_root_target(editor).await?;
         Ok(())
     }
 
     async fn copy_target_files(&self, signed_repo: &SignedRepository) -> Result<()> {
+        let targets_outdir = &self.outdir.join("targets");
+
+        // Handle trusted_root target
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        if fs::metadata(&trusted_root_path).is_ok() {
+            let resolved_trusted_root_path = if self.follow {
+                tokio::fs::canonicalize(&trusted_root_path).await.context(
+                    error::ResolveSymlinkSnafu {
+                        path: &trusted_root_path,
+                    },
+                )?
+            } else {
+                trusted_root_path.clone()
+            };
+            let symlink_name = trusted_root_path.file_name().unwrap();
+            let target_name = symlink_name.to_string_lossy().to_string();
+            let target_name = TargetName::new(target_name);
+            signed_repo
+                .copy_target(
+                    &resolved_trusted_root_path,
+                    targets_outdir,
+                    self.target_path_exists,
+                    Some(&target_name.unwrap()),
+                )
+                .await
+                .context(error::LinkTargetsSnafu {
+                    indir: &trusted_root_path,
+                    outdir: targets_outdir,
+                })?;
+        }
+
+        // Handle the rest of the targets
         let mut target_path: Option<&PathBuf> = None;
 
         if let Some(ref fulcio_target_path) = self.fulcio_target {
@@ -419,7 +453,7 @@ impl RhtasArgs {
         }
 
         if let Some(path) = target_path {
-            let targets_outdir = &self.outdir.join("targets");
+            // let targets_outdir = &self.outdir.join("targets");
             let resolved_target_path = if self.follow {
                 tokio::fs::canonicalize(path)
                     .await
@@ -442,6 +476,22 @@ impl RhtasArgs {
                     indir: path,
                     outdir: targets_outdir,
                 })?;
+        }
+        Ok(())
+    }
+
+    async fn set_trust_root_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        // Check if the trusted_root.json exists
+        if tokio::fs::metadata(&trusted_root_path).await.is_ok() {
+            let mut trusted_root_target = build_targets(&trusted_root_path, self.follow).await?;
+            // Add trusted_root as a target
+            if let Some((target_name, target)) = trusted_root_target.iter_mut().next() {
+                // Add the trusted root target
+                editor
+                    .add_target(target_name.clone(), target.clone())
+                    .context(error::DelegationStructureSnafu)?;
+            }
         }
         Ok(())
     }
