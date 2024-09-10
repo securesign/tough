@@ -29,7 +29,7 @@ maplit = "1"
 olpc-cjson = { version = "0.1", path = "../olpc-cjson" }
 openssl = { version = "0.10.40", features = ["vendored"] }
 rayon = "1"
-reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls-native-roots"] }
 ring = { version = "0.17", features = ["std"] }
 serde = "1"
 serde_json = "1"
