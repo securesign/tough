@@ -468,7 +468,7 @@ impl RhtasArgs {
             let _ = editor.timestamp_version(self.timestamp_version.unwrap());
         }
     }
-    
+
     fn validate_and_set_defaults(&mut self) -> Result<()> {
         // Validate
         if self.fulcio_target.is_some()
