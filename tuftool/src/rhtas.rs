@@ -337,28 +337,34 @@ impl RhtasArgs {
     }
 
     fn update_repository_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
+       if let Some(_expires) = self.targets_expires {
+            editor
+                .bump_targets_version()
+                .context(error::DelegationStructureSnafu)?
+                .targets_expires(self.targets_expires.unwrap())
+                .context(error::DelegationStructureSnafu)?;
+        }
+
+        if let Some(_expires) = self.snapshot_expires {
+            editor
+                .snapshot_expires(self.snapshot_expires.unwrap())
+                .bump_snapshot_version();
+        }
+
+        if let Some(_expires) = self.timestamp_expires {
+            editor
+                .timestamp_expires(self.timestamp_expires.unwrap())
+                .bump_timestamp_version();
+        }
+
         if self.force_version {
-            self.update_metadata_version(editor);
+            self.update_metadata_version(&mut editor);
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
         {
             return error::ForceVersionMissingSnafu {}.fail();
         }
-
-        if let Some(_expires) = self.targets_expires {
-            let _ = editor.targets_expires(self.targets_expires.unwrap());
-        }
-
-        if let Some(_expires) = self.snapshot_expires {
-            let _ = editor.snapshot_expires(self.snapshot_expires.unwrap());
-        }
-
-        if let Some(_expires) = self.timestamp_expires {
-            let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
-        };
-        Ok(())
-    }
 
     fn load_trusted_root(trusted_root_path: &PathBuf) -> Result<SigstoreTrustRoot> {
         if Path::new(&trusted_root_path).exists() {

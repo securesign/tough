@@ -241,7 +241,7 @@ impl RepositoryEditor {
         );
         self.snapshot_extra = Some(snapshot._extra);
         self.snapshot_expires = Some(snapshot.expires);
-        self.snapshot_version = snapshot.version.checked_add(1);
+        self.snapshot_version = Some(snapshot.version);
         Ok(self)
     }
 
@@ -257,7 +257,7 @@ impl RepositoryEditor {
         );
         self.timestamp_extra = Some(timestamp._extra);
         self.timestamp_expires = Some(timestamp.expires);
-        self.timestamp_version = timestamp.version.checked_add(1);
+        self.timestamp_version = Some(timestamp.version);
         Ok(self)
     }
 
@@ -401,6 +401,12 @@ impl RepositoryEditor {
         self
     }
 
+    /// Increment the `Snapshot` version
+    pub fn bump_snapshot_version(&mut self) -> &mut Self {
+        self.snapshot_version = self.snapshot_version.unwrap().checked_add(1);
+        self
+    }
+
     /// Set the `Snapshot` expiration
     pub fn snapshot_expires(&mut self, snapshot_expires: DateTime<Utc>) -> &mut Self {
         self.snapshot_expires = Some(snapshot_expires);
@@ -413,6 +419,12 @@ impl RepositoryEditor {
         Ok(self)
     }
 
+    /// Increment the `Targets` version
+    pub fn bump_targets_version(&mut self) -> Result<&mut Self> {
+        self.targets_editor_mut()?.bump_version();
+        Ok(self)
+    }
+
     /// Set the `Targets` expiration
     pub fn targets_expires(&mut self, targets_expires: DateTime<Utc>) -> Result<&mut Self> {
         self.targets_editor_mut()?.expires(targets_expires);
@@ -422,6 +434,12 @@ impl RepositoryEditor {
     /// Set the `Timestamp` version
     pub fn timestamp_version(&mut self, timestamp_version: NonZeroU64) -> &mut Self {
         self.timestamp_version = Some(timestamp_version);
+        self
+    }
+
+    /// Increment the `Timestamp` version
+    pub fn bump_timestamp_version(&mut self) -> &mut Self {
+        self.timestamp_version = self.timestamp_version.unwrap().checked_add(1);
         self
     }
 

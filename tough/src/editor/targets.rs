@@ -108,7 +108,7 @@ impl TargetsEditor {
             delegations: targets.delegations,
             new_targets: None,
             existing_targets: Some(targets.targets),
-            version: targets.version.checked_add(1),
+            version: Some(targets.version),
             expires: Some(targets.expires),
             name: name.to_string(),
             new_roles: None,
@@ -258,6 +258,12 @@ impl TargetsEditor {
     /// Set the version
     pub fn version(&mut self, version: NonZeroU64) -> &mut Self {
         self.version = Some(version);
+        self
+    }
+
+    /// Increment the version
+    pub fn bump_version(&mut self) -> &mut Self {
+        self.version = self.version.unwrap().checked_add(1);
         self
     }
 
