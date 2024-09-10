@@ -3,7 +3,7 @@
 
 use crate::error::{self, Result};
 
-use chrono::{DateTime, FixedOffset, TimeDelta, Utc};
+use chrono::{DateTime, FixedOffset, TimeDelta, Timelike, Utc};
 use snafu::{ensure, OptionExt, ResultExt};
 
 /// Parses a user-specified datetime, either in full RFC 3339 format, or a shorthand like "in 7
@@ -71,6 +71,6 @@ pub(crate) fn parse_datetime(input: &str) -> Result<DateTime<Utc>> {
     };
 
     let now = Utc::now();
-    let then = now + duration;
+    let then = (now + duration).with_nanosecond(0).unwrap();
     Ok(then)
 }
