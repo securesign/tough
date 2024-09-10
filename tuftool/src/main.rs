@@ -102,7 +102,7 @@ impl Command {
             Command::Root(root_subcommand) => root_subcommand.run().await,
             Command::Download(args) => args.run().await,
             Command::Update(args) => args.run().await,
-            Command::Rhtas(args) => args.run().await,
+            Command::Rhtas(mut args) => args.run().await,
             Command::Delegation(cmd) => cmd.run().await,
             Command::Clone(cmd) => cmd.run().await,
             Command::TransferMetadata(cmd) => cmd.run().await,

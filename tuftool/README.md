@@ -123,7 +123,6 @@ tuftool rhtas \
    --key "${WRK}/keys/root.pem" \
    --set-ctlog-target "${WRK}/input/ctfe.pub" \
    --ctlog-uri "https://ctfe.sigstore.dev" \
-   --ctlog-status "Active" \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/
 

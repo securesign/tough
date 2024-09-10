@@ -155,64 +155,8 @@ WARNING: `--allow-expired-repo` was passed; this is unsafe and will not establis
 }
 
 impl RhtasArgs {
-    pub(crate) async fn run(&self) -> Result<()> {
-        if self.fulcio_target.is_some()
-            && (self.ctlog_uri.is_some()
-                || self.rekor_uri.is_some()
-                || self.tsa_uri.is_some()
-                || self.ctlog_status.is_some()
-                || self.rekor_status.is_some()
-                || self.tsa_status.is_some())
-        {
-            return error::InvalidArgumentCombinationSnafu {
-                msg: "--set-fulcio-target only accepts --fulcio-uri and --fulcio-status."
-                    .to_string(),
-            }
-            .fail();
-        }
-
-        if self.ctlog_target.is_some()
-            && (self.fulcio_uri.is_some()
-                || self.rekor_uri.is_some()
-                || self.tsa_uri.is_some()
-                || self.fulcio_status.is_some()
-                || self.rekor_status.is_some()
-                || self.tsa_status.is_some())
-        {
-            return error::InvalidArgumentCombinationSnafu {
-                msg: "--set-ctlog-target only accepts --ctlog-uri and --ctlog-status.".to_string(),
-            }
-            .fail();
-        }
-
-        if self.rekor_target.is_some()
-            && (self.fulcio_uri.is_some()
-                || self.ctlog_uri.is_some()
-                || self.tsa_uri.is_some()
-                || self.fulcio_status.is_some()
-                || self.ctlog_status.is_some()
-                || self.tsa_status.is_some())
-        {
-            return error::InvalidArgumentCombinationSnafu {
-                msg: "--set-rekor-target only accepts --rekor-uri and --rekor-status.".to_string(),
-            }
-            .fail();
-        }
-
-        if self.tsa_target.is_some()
-            && (self.fulcio_uri.is_some()
-                || self.ctlog_uri.is_some()
-                || self.rekor_uri.is_some()
-                || self.fulcio_status.is_some()
-                || self.ctlog_status.is_some()
-                || self.rekor_status.is_some())
-        {
-            return error::InvalidArgumentCombinationSnafu {
-                msg: "--set-tsa-target only accepts --tsa-uri and --tsa-status.".to_string(),
-            }
-            .fail();
-        }
-
+    pub(crate) async fn run(&mut self) -> Result<()> {
+        self.validate_and_set_defaults()?;
         let expiration_enforcement = if self.allow_expired_repo {
             expired_repo_warning(&self.outdir);
             ExpirationEnforcement::Unsafe
@@ -523,5 +467,96 @@ impl RhtasArgs {
         if self.timestamp_version.is_some() {
             let _ = editor.timestamp_version(self.timestamp_version.unwrap());
         }
+    }
+    
+    fn validate_and_set_defaults(&mut self) -> Result<()> {
+        // Validate
+        if self.fulcio_target.is_some()
+            && (self.ctlog_uri.is_some()
+                || self.rekor_uri.is_some()
+                || self.tsa_uri.is_some()
+                || self.ctlog_status.is_some()
+                || self.rekor_status.is_some()
+                || self.tsa_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-fulcio-target only accepts --fulcio-uri and --fulcio-status."
+                    .to_string(),
+            }
+            .fail();
+        }
+
+        if self.ctlog_target.is_some()
+            && (self.fulcio_uri.is_some()
+                || self.rekor_uri.is_some()
+                || self.tsa_uri.is_some()
+                || self.fulcio_status.is_some()
+                || self.rekor_status.is_some()
+                || self.tsa_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-ctlog-target only accepts --ctlog-uri and --ctlog-status.".to_string(),
+            }
+            .fail();
+        }
+
+        if self.rekor_target.is_some()
+            && (self.fulcio_uri.is_some()
+                || self.ctlog_uri.is_some()
+                || self.tsa_uri.is_some()
+                || self.fulcio_status.is_some()
+                || self.ctlog_status.is_some()
+                || self.tsa_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-rekor-target only accepts --rekor-uri and --rekor-status.".to_string(),
+            }
+            .fail();
+        }
+
+        if self.tsa_target.is_some()
+            && (self.fulcio_uri.is_some()
+                || self.ctlog_uri.is_some()
+                || self.rekor_uri.is_some()
+                || self.fulcio_status.is_some()
+                || self.ctlog_status.is_some()
+                || self.rekor_status.is_some())
+        {
+            return error::InvalidArgumentCombinationSnafu {
+                msg: "--set-tsa-target only accepts --tsa-uri and --tsa-status.".to_string(),
+            }
+            .fail();
+        }
+        // Set Default parameters
+        if self.fulcio_target.is_some() {
+            if self.fulcio_uri.is_none() {
+                self.fulcio_uri = Some(String::from("https://fulcio.sigstore.dev"));
+            }
+            if self.fulcio_status.is_none() {
+                self.fulcio_status = Some(String::from("Active"));
+            }
+        }
+        if self.ctlog_target.is_some() {
+            if self.ctlog_uri.is_none() {
+                self.ctlog_uri = Some(String::from("https://ctfe.sigstore.dev/test"));
+            }
+            if self.ctlog_status.is_none() {
+                self.ctlog_status = Some(String::from("Active"));
+            }
+        }
+
+        if self.rekor_target.is_some() {
+            if self.rekor_uri.is_none() {
+                self.rekor_uri = Some(String::from("https://rekor.sigstore.dev"));
+            }
+            if self.rekor_status.is_none() {
+                self.rekor_status = Some(String::from("Active"));
+            }
+        }
+
+        if self.tsa_target.is_some() && self.tsa_status.is_none() {
+            self.tsa_status = Some(String::from("Active"));
+        }
+        Ok(())
     }
 }
