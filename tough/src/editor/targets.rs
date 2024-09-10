@@ -263,7 +263,9 @@ impl TargetsEditor {
 
     /// Increment the version
     pub fn bump_version(&mut self) -> &mut Self {
-        self.version = self.version.unwrap().checked_add(1);
+        if let Some(_version) = self.version {
+            self.version = self.version.unwrap().checked_add(1);
+        }
         self
     }
 
