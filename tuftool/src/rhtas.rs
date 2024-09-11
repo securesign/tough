@@ -576,10 +576,7 @@ impl RhtasArgs {
                         raw_bytes: certificate_raw_bytes,
                     }],
                 }),
-                valid_for: Some(TimeRange {
-                    start: start,
-                    end: end,
-                }),
+                valid_for: Some(TimeRange { start, end }),
             };
 
             match trusted_root
@@ -655,10 +652,7 @@ impl RhtasArgs {
                 public_key: Some(PublicKey {
                     raw_bytes: Some(ctlog_raw_bytes),
                     key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
-                    valid_for: Some(TimeRange {
-                        start: start,
-                        end: end,
-                    }),
+                    valid_for: Some(TimeRange { start, end }),
                 }),
                 log_id: Some(LogId { key_id }),
                 checkpoint_key_id: None,
@@ -735,10 +729,7 @@ impl RhtasArgs {
                 public_key: Some(PublicKey {
                     raw_bytes: Some(rekor_raw_bytes),
                     key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
-                    valid_for: Some(TimeRange {
-                        start: start,
-                        end: end,
-                    }),
+                    valid_for: Some(TimeRange { start, end }),
                 }),
                 log_id: Some(LogId { key_id }),
                 checkpoint_key_id: None,
@@ -815,10 +806,7 @@ impl RhtasArgs {
                         raw_bytes: certificate_raw_bytes,
                     }],
                 }),
-                valid_for: Some(TimeRange {
-                    start: start,
-                    end: end,
-                }),
+                valid_for: Some(TimeRange { start, end }),
             };
 
             match trusted_root
@@ -1006,19 +994,17 @@ impl RhtasArgs {
         let targets_dir = self.outdir.join("targets");
         let mut sha256_trusted_root_files: Vec<PathBuf> = Vec::new();
         if let Ok(entries) = fs::read_dir(&targets_dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if let Some(extension) = path.extension() {
-                        if extension == "json"
-                            && path
-                                .file_name()
-                                .unwrap_or_default()
-                                .to_string_lossy()
-                                .ends_with(".trusted_root.json")
-                        {
-                            sha256_trusted_root_files.push(path);
-                        }
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(extension) = path.extension() {
+                    if extension == "json"
+                        && path
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .ends_with(".trusted_root.json")
+                    {
+                        sha256_trusted_root_files.push(path);
                     }
                 }
             }
