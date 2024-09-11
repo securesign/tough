@@ -534,6 +534,18 @@ impl RhtasArgs {
                 .unwrap()
                 .as_secs() as i64;
 
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.fulcio_status == "Expired" {
+                end = timestamp;
+                start = None;
+            }
             let new_ca = CertificateAuthority {
                 subject: Some(DistinguishedName {
                     organization: "sigstore.dev".to_string(),
@@ -546,11 +558,8 @@ impl RhtasArgs {
                     }],
                 }),
                 valid_for: Some(TimeRange {
-                    start: Some(Timestamp {
-                        seconds: current_timestamp,
-                        nanos: 0,
-                    }),
-                    end: None,
+                    start: start,
+                    end: end,
                 }),
             };
 
@@ -609,6 +618,18 @@ impl RhtasArgs {
                 .unwrap()
                 .as_secs() as i64;
 
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.ctlog_status == "Expired" {
+                end = timestamp;
+                start = None;
+            }
             let new_ctlog = TransparencyLogInstance {
                 base_url: self.ctlog_uri.clone().unwrap(),
                 hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
@@ -616,11 +637,8 @@ impl RhtasArgs {
                     raw_bytes: Some(ctlog_raw_bytes),
                     key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
                     valid_for: Some(TimeRange {
-                        start: Some(Timestamp {
-                            seconds: current_timestamp,
-                            nanos: 0,
-                        }),
-                        end: None,
+                        start: start,
+                        end: end,
                     }),
                 }),
                 log_id: Some(LogId { key_id }),
@@ -680,6 +698,18 @@ impl RhtasArgs {
                 .unwrap()
                 .as_secs() as i64;
 
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.rekor_status == "Expired" {
+                end = timestamp;
+                start = None;
+            }
             let new_tlog = TransparencyLogInstance {
                 base_url: self.rekor_uri.clone().unwrap(),
                 hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
@@ -687,11 +717,8 @@ impl RhtasArgs {
                     raw_bytes: Some(rekor_raw_bytes),
                     key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
                     valid_for: Some(TimeRange {
-                        start: Some(Timestamp {
-                            seconds: current_timestamp,
-                            nanos: 0,
-                        }),
-                        end: None,
+                        start: start,
+                        end: end,
                     }),
                 }),
                 log_id: Some(LogId { key_id }),
@@ -745,7 +772,19 @@ impl RhtasArgs {
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_secs() as i64;
+                
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
 
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.tsa_status == "Expired" {
+                end = timestamp;
+                start = None;
+            }
             let new_tsa = CertificateAuthority {
                 subject: Some(DistinguishedName {
                     organization: "sigstore.dev".to_string(),
@@ -758,11 +797,8 @@ impl RhtasArgs {
                     }],
                 }),
                 valid_for: Some(TimeRange {
-                    start: Some(Timestamp {
-                        seconds: current_timestamp,
-                        nanos: 0,
-                    }),
-                    end: None,
+                    start: start,
+                    end: end,
                 }),
             };
 
