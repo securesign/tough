@@ -94,6 +94,9 @@ pub(crate) enum Error {
         backtrace: Backtrace,
     },
 
+    #[snafu(display("Invalid argument combination: {}", msg))]
+    InvalidArgumentCombination { msg: String, backtrace: Backtrace },
+
     #[snafu(display("Failed to resolve symlink '{}': {}", path.display(), source))]
     ResolveSymlink {
         path: PathBuf,

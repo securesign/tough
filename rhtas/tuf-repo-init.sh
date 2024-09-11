@@ -232,7 +232,7 @@ if [ -n "${REKOR_KEY}" ]; then
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
     --set-rekor-target "${REKOR_KEY}" \
-    --fulcio-uri "https://rekor.rhtas" \
+    --rekor-uri "https://rekor.rhtas" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
