@@ -337,28 +337,12 @@ impl RhtasArgs {
     }
 
     fn update_repository_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
-       if let Some(_expires) = self.targets_expires {
-            editor
-                .bump_targets_version()
-                .context(error::DelegationStructureSnafu)?
-                .targets_expires(self.targets_expires.unwrap())
-                .context(error::DelegationStructureSnafu)?;
-        }
 
-        if let Some(_expires) = self.snapshot_expires {
-            editor
-                .snapshot_expires(self.snapshot_expires.unwrap())
-                .bump_snapshot_version();
-        }
-
-        if let Some(_expires) = self.timestamp_expires {
-            editor
-                .timestamp_expires(self.timestamp_expires.unwrap())
-                .bump_timestamp_version();
-        }
+        self.update_metadata_expiration(&mut editor)?;
+        self.update_all_metadata(&mut editor)?;
 
         if self.force_version {
-            self.update_metadata_version(&mut editor);
+            self.update_metadata_version(&mut editor)?;
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
@@ -374,6 +358,14 @@ impl RhtasArgs {
             let trusted_root: TrustedRoot =
                 from_reader(file).context(error::FileParseJsonSnafu {
                     path: trusted_root_path.clone(),
+
+        // If the "remove-target" argument was passed, remove the target
+        // from the repository.
+        for target_name in &self.delete_targets {
+            editor
+                .remove_target(target_name)
+                .context(error::RemoveTargetSnafu {
+                    name: target_name.raw(),
                 })?;
             Ok(SigstoreTrustRoot::from_trusted_root(trusted_root))
         } else {
@@ -557,7 +549,7 @@ impl RhtasArgs {
             let current_timestamp = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_secs() as i64;
+                .as_seGcs() as i64;
 
             let timestamp: Option<Timestamp> = Some(Timestamp {
                 seconds: current_timestamp,
@@ -886,16 +878,78 @@ impl RhtasArgs {
         Ok(())
     }
 
-    fn update_metadata_version(&self, editor: &mut RepositoryEditor) {
+    fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
         if self.snapshot_version.is_some() {
-            let _ = editor.snapshot_version(self.snapshot_version.unwrap());
+            editor.snapshot_version(self.snapshot_version.unwrap());
         }
         if self.targets_version.is_some() {
-            let _ = editor.targets_version(self.targets_version.unwrap());
+            editor
+                .targets_version(self.targets_version.unwrap())
+                .context(error::DelegationStructureSnafu)?;
         }
         if self.timestamp_version.is_some() {
-            let _ = editor.timestamp_version(self.timestamp_version.unwrap());
+            editor.timestamp_version(self.timestamp_version.unwrap());
         }
+        Ok(())
+    }
+
+    fn update_metadata_expiration(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.fulcio_target.is_none()
+            || self.ctlog_target.is_none()
+            || self.rekor_target.is_none()
+            || self.tsa_target.is_none()
+        {
+            if self.targets_expires.is_some() {
+                editor
+                    .targets_expires(self.targets_expires.unwrap())
+                    .context(error::DelegationStructureSnafu)?
+                    .bump_targets_version()
+                    .context(error::DelegationStructureSnafu)?;
+            }
+
+            if self.snapshot_expires.is_some() {
+                editor
+                    .snapshot_expires(self.snapshot_expires.unwrap())
+                    .bump_snapshot_version();
+            }
+
+            if self.timestamp_expires.is_some() {
+                editor
+                    .timestamp_expires(self.timestamp_expires.unwrap())
+                    .bump_timestamp_version();
+            }
+        }
+        Ok(())
+    }
+
+    fn update_all_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.fulcio_target.is_some()
+            || self.ctlog_target.is_some()
+            || self.rekor_target.is_some()
+            || self.tsa_target.is_some()
+        {
+            if self.targets_expires.is_some() {
+                editor
+                    .targets_expires(self.targets_expires.unwrap())
+                    .context(error::DelegationStructureSnafu)?;
+            }
+            editor
+                .bump_targets_version()
+                .context(error::DelegationStructureSnafu)?;
+
+            if self.snapshot_expires.is_some() {
+                editor.snapshot_expires(self.snapshot_expires.unwrap());
+            }
+
+            editor.bump_snapshot_version();
+
+            if self.timestamp_expires.is_some() {
+                editor.timestamp_expires(self.timestamp_expires.unwrap());
+            }
+
+            editor.bump_timestamp_version();
+        }
+        Ok(())
     }
 
     fn validate_and_set_defaults(&mut self) -> Result<()> {
