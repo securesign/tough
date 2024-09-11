@@ -97,6 +97,13 @@ pub(crate) enum Error {
     #[snafu(display("Invalid argument combination: {}", msg))]
     InvalidArgumentCombination { msg: String, backtrace: Backtrace },
 
+    #[snafu(display("Failed to delete file {:?}: {}", file, source))]
+    FileDelete {
+        file: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
     #[snafu(display("Failed to resolve symlink '{}': {}", path.display(), source))]
     ResolveSymlink {
         path: PathBuf,

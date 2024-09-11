@@ -25,7 +25,7 @@ use std::fs::{self, File};
 use std::io::{self, Read};
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
@@ -215,6 +215,18 @@ impl RhtasArgs {
         self.update_repository_metadata(&mut editor)?;
 
         let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        // Create temporary targets/trusted_root.json
+        // check if a <sha256>.trusted_root.json was already created
+        let latest_trusted_root = self.get_latest_trusted_root();
+        if trusted_root_path != latest_trusted_root {
+            fs::copy(latest_trusted_root.clone(), &trusted_root_path).context(
+                error::FileCopySnafu {
+                    src: latest_trusted_root,
+                    destination: trusted_root_path.clone(),
+                },
+            )?;
+        }
+
         let mut sigstore_trust_root = RhtasArgs::load_trusted_root(&trusted_root_path)?;
 
         // If the "remove-<target>-target" argument was passed, remove the targets from the repository.
@@ -257,6 +269,13 @@ impl RhtasArgs {
             .context(error::WriteRepoSnafu {
                 directory: &self.outdir,
             })?;
+
+        // delete targets/trusted_root.json
+        if trusted_root_path.exists() {
+            fs::remove_file(&trusted_root_path).context(error::FileDeleteSnafu {
+                file: trusted_root_path.clone(),
+            })?;
+        }
 
         Ok(())
     }
@@ -772,7 +791,7 @@ impl RhtasArgs {
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_secs() as i64;
-                
+
             let timestamp: Option<Timestamp> = Some(Timestamp {
                 seconds: current_timestamp,
                 nanos: 0,
@@ -981,5 +1000,42 @@ impl RhtasArgs {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         Ok(buffer)
+    }
+
+    fn get_latest_trusted_root(&self) -> PathBuf {
+        let targets_dir = self.outdir.join("targets");
+        let mut sha256_trusted_root_files: Vec<PathBuf> = Vec::new();
+        if let Ok(entries) = fs::read_dir(&targets_dir) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if let Some(extension) = path.extension() {
+                        if extension == "json"
+                            && path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .ends_with(".trusted_root.json")
+                        {
+                            sha256_trusted_root_files.push(path);
+                        }
+                    }
+                }
+            }
+        }
+        // get the latest file based on update time
+        if !sha256_trusted_root_files.is_empty() {
+            let latest_trusted_root = sha256_trusted_root_files.into_iter().max_by_key(|path| {
+                fs::metadata(path)
+                    .and_then(|metadata| metadata.modified())
+                    .map(|time| time.duration_since(UNIX_EPOCH).unwrap_or(Duration::ZERO))
+                    .unwrap_or(Duration::ZERO)
+            });
+            if let Some(latest_file) = latest_trusted_root {
+                return latest_file;
+            }
+        }
+        // return the default "trusted_root.json" path
+        targets_dir.join("trusted_root.json")
     }
 }
