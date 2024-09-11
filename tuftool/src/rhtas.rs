@@ -561,7 +561,7 @@ impl RhtasArgs {
             let mut start = timestamp.clone();
             let mut end: Option<Timestamp> = None;
 
-            if self.fulcio_status == "Expired" {
+            if self.fulcio_status.clone().unwrap() == "Expired" {
                 end = timestamp;
                 start = None;
             }
@@ -645,7 +645,7 @@ impl RhtasArgs {
             let mut start = timestamp.clone();
             let mut end: Option<Timestamp> = None;
 
-            if self.ctlog_status == "Expired" {
+            if self.ctlog_status.clone().unwrap() == "Expired" {
                 end = timestamp;
                 start = None;
             }
@@ -725,7 +725,7 @@ impl RhtasArgs {
             let mut start = timestamp.clone();
             let mut end: Option<Timestamp> = None;
 
-            if self.rekor_status == "Expired" {
+            if self.rekor_status.clone().unwrap() == "Expired" {
                 end = timestamp;
                 start = None;
             }
@@ -800,7 +800,7 @@ impl RhtasArgs {
             let mut start = timestamp.clone();
             let mut end: Option<Timestamp> = None;
 
-            if self.tsa_status == "Expired" {
+            if self.tsa_status.clone().unwrap() == "Expired" {
                 end = timestamp;
                 start = None;
             }
@@ -994,7 +994,7 @@ impl RhtasArgs {
         }
         Ok(())
     }
-    
+
     fn load_target_bytes(target_path: &std::path::Path) -> io::Result<Vec<u8>> {
         let mut file = File::open(target_path)?;
         let mut buffer = Vec::new();
