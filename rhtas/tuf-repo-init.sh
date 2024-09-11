@@ -308,7 +308,7 @@ else
 fi
 
 # Remove ununused trusted_root.json files from ${OUTDIR}/targets
-ls -t ${OUTDIR}/targets | grep trusted_root.json | tail -n +2 | xargs -I {} rm -- ${OUTDIR}/targets/{}
+ls -t "${OUTDIR}"/targets | grep trusted_root.json | tail -n +2 | xargs -I {} rm -- "${OUTDIR}"/targets/{}
 
 echo "Copying the TUF repository to final location ${TUF_REPO_PATH} ..."
 # TODO: fix this based on changes in layout of tuftool output
