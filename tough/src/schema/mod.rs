@@ -20,6 +20,9 @@ use crate::{encode_filename, TargetName};
 use chrono::{DateTime, Utc};
 use globset::{Glob, GlobMatcher};
 use hex::ToHex;
+#[allow(unused_imports)]
+use indexmap::indexmap;
+use indexmap::IndexMap;
 use olpc_cjson::CanonicalFormatter;
 use ring::digest::{digest, Context, SHA256};
 use serde::de::Error as SerdeDeError;
@@ -119,6 +122,7 @@ pub struct Signature {
 /// A `KeyHolder` is metadata that is responsible for verifying the signatures of a role.
 /// `KeyHolder` contains either a `Delegations` of a `Targets` or a `Root`
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum KeyHolder {
     /// Delegations verify delegated targets
     Delegations(Delegations),
@@ -160,7 +164,7 @@ pub struct Root {
 
     /// A list of roles, the keys associated with each role, and the threshold of signatures used
     /// for each role.
-    pub roles: HashMap<RoleType, RoleKeys>,
+    pub roles: IndexMap<RoleType, RoleKeys>,
 
     /// Extra arguments found during deserialization.
     ///
@@ -260,7 +264,7 @@ pub struct Snapshot {
     /// describes the hash key in 4.4: METAPATH is the file path of the metadata on the repository
     /// relative to the metadata base URL. For snapshot.json, these are top-level targets metadata
     /// and delegated targets metadata.
-    pub meta: HashMap<String, Metafile>,
+    pub meta: IndexMap<String, Metafile>,
 
     /// Extra arguments found during deserialization.
     ///
@@ -317,7 +321,7 @@ pub struct Metafile {
     ///
     /// If you're instantiating this struct, you should make this `HashMap::empty()`.
     #[serde(flatten)]
-    pub _extra: HashMap<String, Value>,
+    pub _extra: IndexMap<String, Value>,
 }
 
 /// Represents the hash dictionary in a `snapshot.json` file.
@@ -332,7 +336,7 @@ pub struct Hashes {
     ///
     /// If you're instantiating this struct, you should make this `HashMap::empty()`.
     #[serde(flatten)]
-    pub _extra: HashMap<String, Value>,
+    pub _extra: IndexMap<String, Value>,
 }
 
 impl Snapshot {
@@ -342,7 +346,7 @@ impl Snapshot {
             spec_version,
             version,
             expires,
-            meta: HashMap::new(),
+            meta: IndexMap::new(),
             _extra: HashMap::new(),
         }
     }
@@ -399,7 +403,7 @@ pub struct Targets {
 
     /// Each key of the TARGETS object is a TARGETPATH. A TARGETPATH is a path to a file that is
     /// relative to a mirror's base URL of targets.
-    pub targets: HashMap<TargetName, Target>,
+    pub targets: IndexMap<TargetName, Target>,
 
     /// Delegations describes subsets of the targets for which responsibility is delegated to
     /// another role.
@@ -450,7 +454,7 @@ pub struct Target {
     ///
     /// If you're instantiating this struct, you should make this `HashMap::empty()`.
     #[serde(flatten)]
-    pub _extra: HashMap<String, Value>,
+    pub _extra: IndexMap<String, Value>,
 }
 
 impl Target {
@@ -490,10 +494,10 @@ impl Target {
             length,
             hashes: Hashes {
                 sha256: Decoded::from(digest.finish().as_ref().to_vec()),
-                _extra: HashMap::new(),
+                _extra: IndexMap::new(),
             },
             custom: HashMap::new(),
-            _extra: HashMap::new(),
+            _extra: IndexMap::new(),
         })
     }
 }
@@ -505,7 +509,7 @@ impl Targets {
             spec_version,
             version,
             expires,
-            targets: HashMap::new(),
+            targets: IndexMap::new(),
             _extra: HashMap::new(),
             delegations: Some(Delegations::new()),
         }
@@ -563,7 +567,7 @@ impl Targets {
 
     /// Recursively clears all targets
     pub fn clear_targets(&mut self) {
-        self.targets = HashMap::new();
+        self.targets = IndexMap::new();
         if let Some(delegations) = &mut self.delegations {
             for delegated_role in &mut delegations.roles {
                 if let Some(targets) = &mut delegated_role.targets {
@@ -580,7 +584,7 @@ impl Targets {
 
     /// Remove a target from targets
     pub fn remove_target(&mut self, name: &TargetName) -> Option<Target> {
-        self.targets.remove(name)
+        self.targets.shift_remove(name)
     }
 
     /// Returns the `&Signed<Targets>` for `name`
@@ -1112,7 +1116,7 @@ pub struct Timestamp {
 
     /// METAFILES is the same as described for the snapshot.json file. In the case of the
     /// timestamp.json file, this MUST only include a description of the snapshot.json file.
-    pub meta: HashMap<String, Metafile>,
+    pub meta: IndexMap<String, Metafile>,
 
     /// Extra arguments found during deserialization.
     ///
@@ -1131,7 +1135,7 @@ impl Timestamp {
             spec_version,
             version,
             expires,
-            meta: HashMap::new(),
+            meta: IndexMap::new(),
             _extra: HashMap::new(),
         }
     }
@@ -1155,17 +1159,15 @@ impl Role for Timestamp {
 
 #[test]
 fn targets_iter_and_map_test() {
-    use maplit::hashmap;
-
     // Create a dummy Target object.
     let nothing = Target {
         length: 0,
         hashes: Hashes {
             sha256: [0u8].to_vec().into(),
-            _extra: HashMap::default(),
+            _extra: IndexMap::default(),
         },
         custom: HashMap::default(),
-        _extra: HashMap::default(),
+        _extra: IndexMap::default(),
     };
 
     // Create a hierarchy of targets/delegations: a -> b -> c
@@ -1180,7 +1182,7 @@ fn targets_iter_and_map_test() {
                 spec_version: String::new(),
                 version: NonZeroU64::new(1).unwrap(),
                 expires: Utc::now(),
-                targets: hashmap! {
+                targets: indexmap! {
                     TargetName::new("c.txt").unwrap() => nothing.clone(),
                 },
                 delegations: None,
@@ -1204,7 +1206,7 @@ fn targets_iter_and_map_test() {
                 spec_version: String::new(),
                 version: NonZeroU64::new(1).unwrap(),
                 expires: Utc::now(),
-                targets: hashmap! {
+                targets: indexmap! {
                     TargetName::new("b.txt").unwrap() => nothing.clone(),
                 },
                 delegations: Some(b_delegations),
@@ -1221,7 +1223,7 @@ fn targets_iter_and_map_test() {
         spec_version: String::new(),
         version: NonZeroU64::new(1).unwrap(),
         expires: Utc::now(),
-        targets: hashmap! {
+        targets: indexmap! {
             TargetName::new("a.txt").unwrap() => nothing,
         },
         delegations: Some(a_delegations),

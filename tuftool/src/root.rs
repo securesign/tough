@@ -7,8 +7,8 @@ use crate::source::parse_key_source;
 use crate::{load_file, write_file};
 use chrono::{DateTime, Timelike, Utc};
 use clap::Parser;
+use indexmap::indexmap;
 use log::warn;
-use maplit::hashmap;
 use ring::rand::SystemRandom;
 use snafu::{ensure, OptionExt, ResultExt};
 use std::collections::HashMap;
@@ -185,7 +185,7 @@ impl Command {
                     version: NonZeroU64::new(init_version).unwrap(),
                     expires: round_time(Utc::now()),
                     keys: HashMap::new(),
-                    roles: hashmap! {
+                    roles: indexmap! {
                         RoleType::Root => role_keys!(),
                         RoleType::Snapshot => role_keys!(),
                         RoleType::Targets => role_keys!(),

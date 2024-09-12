@@ -24,6 +24,7 @@ use crate::transport::{IntoVec, Transport};
 use crate::{encode_filename, Limits};
 use crate::{Repository, TargetName};
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use ring::digest::{SHA256, SHA256_OUTPUT_LEN};
 use ring::rand::SystemRandom;
 use serde_json::Value;
@@ -209,6 +210,147 @@ impl RepositoryEditor {
         })
     }
 
+    /// Only signs timestamp to preserve other intact metadata files if user only selects timestamp
+    /// flags
+    pub async fn sign_timestamp(
+        &self,
+        keys: &[Box<dyn KeySource>],
+        repo: Repository,
+    ) -> Result<SignedRepository> {
+        let rng = SystemRandom::new();
+        let root = KeyHolder::Root(self.signed_root.signed.signed.clone());
+
+        let delegated_targets = repo.targets.signed.signed_delegated_targets();
+        let signed_targets = SignedRole::from_signed(repo.targets)?;
+
+        let signed_delegated_targets = if delegated_targets.is_empty() {
+            // If we don't have any delegated targets, there is no reason to create
+            // a `SignedDelegatedTargets`
+            None
+        } else {
+            // If we have delegated targets
+            let mut roles = Vec::new();
+            for role in delegated_targets {
+                // Create a `SignedRole<DelegatedTargets>` for each delegated targets
+                roles.push(SignedRole::from_signed(role)?);
+            }
+            // SignedDelegatedTargets is a wrapper for a set of `SignedRole<DelegatedTargets>`
+            Some(SignedDelegatedTargets {
+                roles,
+                consistent_snapshot: self.signed_root.signed.signed.consistent_snapshot,
+            })
+        };
+
+        let signed_snapshot = SignedRole::from_signed(repo.snapshot)?;
+        let signed_timestamp = self.build_timestamp(&signed_snapshot)?;
+        let signed_timestamp = SignedRole::new(signed_timestamp, &root, keys, &rng).await?;
+
+        signed_targets
+            .signed
+            .signed
+            .validate()
+            .context(error::InvalidPathSnafu)?;
+
+        Ok(SignedRepository {
+            root: self.signed_root.clone(),
+            targets: signed_targets,
+            snapshot: signed_snapshot,
+            timestamp: signed_timestamp,
+            delegated_targets: signed_delegated_targets,
+        })
+    }
+
+    /// Only signs timestamp + snapshot to preserve target metadata files if user only selects
+    /// snapshot flags
+    pub async fn sign_snapshot(
+        &self,
+        keys: &[Box<dyn KeySource>],
+        repo: Repository,
+    ) -> Result<SignedRepository> {
+        let rng = SystemRandom::new();
+        let root = KeyHolder::Root(self.signed_root.signed.signed.clone());
+
+        let delegated_targets = repo.targets.signed.signed_delegated_targets();
+        let signed_targets = SignedRole::from_signed(repo.targets)?;
+
+        let signed_delegated_targets = if delegated_targets.is_empty() {
+            // If we don't have any delegated targets, there is no reason to create
+            // a `SignedDelegatedTargets`
+            None
+        } else {
+            // If we have delegated targets
+            let mut roles = Vec::new();
+            for role in delegated_targets {
+                // Create a `SignedRole<DelegatedTargets>` for each delegated targets
+                roles.push(SignedRole::from_signed(role)?);
+            }
+            // SignedDelegatedTargets is a wrapper for a set of `SignedRole<DelegatedTargets>`
+            Some(SignedDelegatedTargets {
+                roles,
+                consistent_snapshot: self.signed_root.signed.signed.consistent_snapshot,
+            })
+        };
+
+        let signed_snapshot = self.build_snapshot(&signed_targets, &signed_delegated_targets)?;
+        let signed_snapshot = SignedRole::new(signed_snapshot, &root, keys, &rng).await?;
+        let signed_timestamp = self.build_timestamp(&signed_snapshot)?;
+        let signed_timestamp = SignedRole::new(signed_timestamp, &root, keys, &rng).await?;
+
+        signed_targets
+            .signed
+            .signed
+            .validate()
+            .context(error::InvalidPathSnafu)?;
+
+        Ok(SignedRepository {
+            root: self.signed_root.clone(),
+            targets: signed_targets,
+            snapshot: signed_snapshot,
+            timestamp: signed_timestamp,
+            delegated_targets: signed_delegated_targets,
+        })
+    }
+
+    ///    Preserves metadata for root operations
+    pub fn preserve_metadata(&self, repo: Repository) -> Result<SignedRepository> {
+        let delegated_targets = repo.targets.signed.signed_delegated_targets();
+        let signed_targets = SignedRole::from_signed(repo.targets)?;
+
+        let signed_delegated_targets = if delegated_targets.is_empty() {
+            // If we don't have any delegated targets, there is no reason to create
+            // a `SignedDelegatedTargets`
+            None
+        } else {
+            // If we have delegated targets
+            let mut roles = Vec::new();
+            for role in delegated_targets {
+                // Create a `SignedRole<DelegatedTargets>` for each delegated targets
+                roles.push(SignedRole::from_signed(role)?);
+            }
+            // SignedDelegatedTargets is a wrapper for a set of `SignedRole<DelegatedTargets>`
+            Some(SignedDelegatedTargets {
+                roles,
+                consistent_snapshot: self.signed_root.signed.signed.consistent_snapshot,
+            })
+        };
+
+        let signed_snapshot = SignedRole::from_signed(repo.snapshot)?;
+        let signed_timestamp = SignedRole::from_signed(repo.timestamp)?;
+
+        signed_targets
+            .signed
+            .signed
+            .validate()
+            .context(error::InvalidPathSnafu)?;
+
+        Ok(SignedRepository {
+            root: self.signed_root.clone(),
+            targets: signed_targets,
+            snapshot: signed_snapshot,
+            timestamp: signed_timestamp,
+            delegated_targets: signed_delegated_targets,
+        })
+    }
     /// Add an existing `Targets` struct to the repository.
     pub fn targets(&mut self, targets: Signed<Targets>) -> Result<&mut Self> {
         ensure!(
@@ -734,11 +876,11 @@ impl RepositoryEditor {
         Metafile {
             hashes: Some(Hashes {
                 sha256: role.sha256.to_vec().into(),
-                _extra: HashMap::new(),
+                _extra: IndexMap::new(),
             }),
             length: Some(role.length),
             version: role.signed.signed.version(),
-            _extra: HashMap::new(),
+            _extra: IndexMap::new(),
         }
     }
 
@@ -772,11 +914,11 @@ impl RepositoryEditor {
         Metafile {
             hashes: Some(Hashes {
                 sha256: role.sha256.to_vec().into(),
-                _extra: HashMap::new(),
+                _extra: IndexMap::new(),
             }),
             length: Some(role.length),
             version: role.signed.signed.version(),
-            _extra: HashMap::new(),
+            _extra: IndexMap::new(),
         }
     }
 }

@@ -35,6 +35,8 @@ typed-path = "0.9"
 untrusted = "0.9"
 url = "2"
 walkdir = "2"
+itertools = "0.13.0"
+indexmap = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 failure-server = { path = "../integ/failure-server" }

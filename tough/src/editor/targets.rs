@@ -18,6 +18,7 @@ use crate::transport::{IntoVec, Transport};
 use crate::{encode_filename, Limits};
 use crate::{Repository, TargetName};
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use ring::rand::SystemRandom;
 use serde_json::Value;
 use snafu::{OptionExt, ResultExt};
@@ -66,9 +67,9 @@ pub struct TargetsEditor {
     /// for "targets" on a repository that doesn't use delegated targets
     delegations: Option<Delegations>,
     /// New targets that were added to `name`
-    new_targets: Option<HashMap<TargetName, Target>>,
+    new_targets: Option<IndexMap<TargetName, Target>>,
     /// Targets that were previously in `name`
-    existing_targets: Option<HashMap<TargetName, Target>>,
+    existing_targets: Option<IndexMap<TargetName, Target>>,
     /// Version of the `Targets`
     version: Option<NonZeroU64>,
     /// Expiration of the `Targets`
@@ -186,7 +187,7 @@ impl TargetsEditor {
             .build()
         })?;
         self.new_targets
-            .get_or_insert_with(HashMap::new)
+            .get_or_insert_with(IndexMap::new)
             .insert(target_name, target);
         Ok(self)
     }
@@ -237,10 +238,10 @@ impl TargetsEditor {
     /// Remove a `Target` from the targets if it exists
     pub fn remove_target(&mut self, name: &TargetName) -> &mut Self {
         if let Some(targets) = self.existing_targets.as_mut() {
-            targets.remove(name);
+            targets.shift_remove(name);
         }
         if let Some(targets) = self.new_targets.as_mut() {
-            targets.remove(name);
+            targets.shift_remove(name);
         }
 
         self
@@ -249,9 +250,9 @@ impl TargetsEditor {
     /// Remove all targets from this role
     pub fn clear_targets(&mut self) -> &mut Self {
         self.existing_targets
-            .get_or_insert_with(HashMap::new)
+            .get_or_insert_with(IndexMap::new)
             .clear();
-        self.new_targets.get_or_insert_with(HashMap::new).clear();
+        self.new_targets.get_or_insert_with(IndexMap::new).clear();
         self
     }
 
@@ -471,7 +472,7 @@ impl TargetsEditor {
         // the most common use case, it's possible this is what a user wants.
         // If it's important to have a non-empty targets, the object can be
         // inspected by the calling code.
-        let mut targets: HashMap<TargetName, Target> = HashMap::new();
+        let mut targets: IndexMap<TargetName, Target> = IndexMap::new();
         if let Some(ref existing_targets) = self.existing_targets {
             targets.extend(existing_targets.clone());
         }
