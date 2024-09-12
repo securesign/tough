@@ -9,11 +9,24 @@ use crate::source::parse_key_source;
 use crate::TargetName;
 use chrono::{DateTime, Utc};
 use clap::Parser;
+use prost_types::Timestamp;
+use serde_json::from_reader;
 use serde_json::json;
+use sha2::{Digest, Sha256};
+use sigstore::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
+use sigstore_protobuf_specs::dev::sigstore::{
+    common::v1::{
+        DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
+    },
+    trustroot::v1::{CertificateAuthority, TransparencyLogInstance, TrustedRoot},
+};
 use snafu::{OptionExt, ResultExt};
+use std::fs::{self, File};
+use std::io::{self, Read};
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
-use tough::editor::signed::PathExists;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
@@ -63,8 +76,17 @@ pub(crate) struct RhtasArgs {
     #[arg(long, default_value = "skip")]
     target_path_exists: PathExists,
 
-    #[arg(long = "delete-target")]
-    delete_targets: Vec<TargetName>,
+    #[arg(long = "delete-fulcio-target")]
+    delete_fulcio_targets: Vec<TargetName>,
+
+    #[arg(long = "delete-ctlog-target")]
+    delete_ctlog_targets: Vec<TargetName>,
+
+    #[arg(long = "delete-rekor-target")]
+    delete_rekor_targets: Vec<TargetName>,
+
+    #[arg(long = "delete-tsa-target")]
+    delete_tsa_targets: Vec<TargetName>,
 
     /// Path to the new Fulcio target file to add to the targets
     #[arg(long = "set-fulcio-target")]
@@ -190,56 +212,29 @@ impl RhtasArgs {
             keys.push(key_source);
         }
 
-        if self.force_version {
-            self.update_metadata_version(&mut editor);
-        } else if self.snapshot_version.is_some()
-            || self.targets_version.is_some()
-            || self.timestamp_version.is_some()
-        {
-            return error::ForceVersionMissingSnafu {}.fail();
+        self.update_repository_metadata(&mut editor)?;
+
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        // Create temporary targets/trusted_root.json
+        // check if a <sha256>.trusted_root.json was already created
+        let latest_trusted_root = self.get_latest_trusted_root();
+        if trusted_root_path != latest_trusted_root {
+            fs::copy(latest_trusted_root.clone(), &trusted_root_path).context(
+                error::FileCopySnafu {
+                    src: latest_trusted_root,
+                    destination: trusted_root_path.clone(),
+                },
+            )?;
         }
 
-        if let Some(_expires) = self.targets_expires {
-            let _ = editor.targets_expires(self.targets_expires.unwrap());
-        }
+        let mut sigstore_trust_root = RhtasArgs::load_trusted_root(&trusted_root_path)?;
 
-        if let Some(_expires) = self.snapshot_expires {
-            let _ = editor.snapshot_expires(self.snapshot_expires.unwrap());
-        }
+        // If the "remove-<target>-target" argument was passed, remove the targets from the repository.
+        self.delete_targets(&mut editor, &mut sigstore_trust_root)
+            .await?;
 
-        if let Some(_expires) = self.timestamp_expires {
-            let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
-        };
-        // If the "remove-target" argument was passed, remove the target
-        // from the repository.
-        for target_name in &self.delete_targets {
-            editor
-                .remove_target(target_name)
-                .context(error::RemoveTargetSnafu {
-                    name: target_name.raw(),
-                })?;
-            self.remove_target_file(target_name.raw()).await?;
-        }
-
-        // If the "set-fulcio-target" argument was passed, build a target
-        // and add it to the repository.
-        // user can specify fulcio-status, fulcio-uri & fulcio-usage
-        self.set_fulcio_target(&mut editor).await?;
-
-        // If the "set-ctlog-target" argument was passed, build a target
-        // and add it to the repository.
-        // user can specify ctlog-status, ctlog-uri & ctlog-usage
-        self.set_ctlog_target(&mut editor).await?;
-
-        // If the "set-rekor-target" argument was passed, build a target
-        // and add it to the repository.
-        // user can specify rekor-status, rekor-uri & rekor-usage
-        self.set_rekor_target(&mut editor).await?;
-
-        // If the "set-tsa-target" argument was passed, build a target
-        // and add it to the repository.
-        // user can specify tsa-status, tsa-uri & tsa-usage
-        self.set_tsa_target(&mut editor).await?;
+        self.set_all_targets(&mut editor, &mut sigstore_trust_root)
+            .await?;
 
         // If a `Targets` metadata needs to be updated
         if self.role.is_some() && self.indir.is_some() {
@@ -266,6 +261,201 @@ impl RhtasArgs {
 
         let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
 
+        self.copy_target_files(&signed_repo).await?;
+
+        signed_repo
+            .write(&self.outdir)
+            .await
+            .context(error::WriteRepoSnafu {
+                directory: &self.outdir,
+            })?;
+
+        // delete targets/trusted_root.json
+        if trusted_root_path.exists() {
+            fs::remove_file(&trusted_root_path).context(error::FileDeleteSnafu {
+                file: trusted_root_path.clone(),
+            })?;
+        }
+
+        Ok(())
+    }
+
+    async fn delete_targets(
+        &self,
+        editor: &mut RepositoryEditor,
+        sigstore_trust_root: &mut SigstoreTrustRoot,
+    ) -> Result<()> {
+        for target_name in &self.delete_fulcio_targets {
+            editor
+                .remove_target(target_name)
+                .context(error::RemoveTargetSnafu {
+                    name: target_name.raw(),
+                })?;
+            self.remove_target_file(
+                target_name.raw(),
+                sigstore_trust_root,
+                Target::CertificateAuthority,
+            )
+            .await?;
+        }
+
+        for target_name in &self.delete_ctlog_targets {
+            editor
+                .remove_target(target_name)
+                .context(error::RemoveTargetSnafu {
+                    name: target_name.raw(),
+                })?;
+            self.remove_target_file(target_name.raw(), sigstore_trust_root, Target::Ctlog)
+                .await?;
+        }
+
+        for target_name in &self.delete_rekor_targets {
+            editor
+                .remove_target(target_name)
+                .context(error::RemoveTargetSnafu {
+                    name: target_name.raw(),
+                })?;
+            self.remove_target_file(target_name.raw(), sigstore_trust_root, Target::Tlog)
+                .await?;
+        }
+
+        for target_name in &self.delete_tsa_targets {
+            editor
+                .remove_target(target_name)
+                .context(error::RemoveTargetSnafu {
+                    name: target_name.raw(),
+                })?;
+            self.remove_target_file(
+                target_name.raw(),
+                sigstore_trust_root,
+                Target::TimestampAuthority,
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    fn update_repository_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.force_version {
+            self.update_metadata_version(editor);
+        } else if self.snapshot_version.is_some()
+            || self.targets_version.is_some()
+            || self.timestamp_version.is_some()
+        {
+            return error::ForceVersionMissingSnafu {}.fail();
+        }
+
+        if let Some(_expires) = self.targets_expires {
+            let _ = editor.targets_expires(self.targets_expires.unwrap());
+        }
+
+        if let Some(_expires) = self.snapshot_expires {
+            let _ = editor.snapshot_expires(self.snapshot_expires.unwrap());
+        }
+
+        if let Some(_expires) = self.timestamp_expires {
+            let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
+        };
+        Ok(())
+    }
+
+    fn load_trusted_root(trusted_root_path: &PathBuf) -> Result<SigstoreTrustRoot> {
+        if Path::new(&trusted_root_path).exists() {
+            let file = File::open(trusted_root_path).context(error::FileOpenSnafu {
+                path: trusted_root_path.clone(),
+            })?;
+            let trusted_root: TrustedRoot =
+                from_reader(file).context(error::FileParseJsonSnafu {
+                    path: trusted_root_path.clone(),
+                })?;
+            Ok(SigstoreTrustRoot::from_trusted_root(trusted_root))
+        } else {
+            Ok(RhtasArgs::new_trusted_root())
+        }
+    }
+
+    pub fn new_trusted_root() -> SigstoreTrustRoot {
+        let trusted_root = TrustedRoot {
+            media_type: "application/vnd.dev.sigstore.trustedroot+json;version=0.1".to_string(),
+            tlogs: Vec::new(),
+            certificate_authorities: Vec::new(),
+            ctlogs: Vec::new(),
+            timestamp_authorities: Vec::new(),
+        };
+
+        SigstoreTrustRoot::from_trusted_root(trusted_root)
+    }
+
+    async fn set_all_targets(
+        &self,
+        editor: &mut RepositoryEditor,
+        sigstore_trust_root: &mut SigstoreTrustRoot,
+    ) -> Result<()> {
+        // If the "set-fulcio-target" argument was passed, build a target
+        // and add it to the repository.
+        self.set_fulcio_target(editor, sigstore_trust_root).await?;
+
+        // If the "set-ctlog-target" argument was passed, build a target
+        // and add it to the repository.
+        self.set_ctlog_target(editor, sigstore_trust_root).await?;
+
+        // If the "set-rekor-target" argument was passed, build a target
+        // and add it to the repository.
+        self.set_rekor_target(editor, sigstore_trust_root).await?;
+
+        // If the "set-tsa-target" argument was passed, build a target
+        // and add it to the repository.
+        self.set_tsa_target(editor, sigstore_trust_root).await?;
+
+        // Save then set trust_root
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        match SigstoreTrustRoot::save_to_file(
+            sigstore_trust_root,
+            trusted_root_path.clone().as_path(),
+        ) {
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!("Error saving to file: {e}");
+            }
+        }
+        self.set_trust_root_target(editor).await?;
+        Ok(())
+    }
+
+    async fn copy_target_files(&self, signed_repo: &SignedRepository) -> Result<()> {
+        let targets_outdir = &self.outdir.join("targets");
+
+        // Handle trusted_root target
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        if fs::metadata(&trusted_root_path).is_ok() {
+            let resolved_trusted_root_path = if self.follow {
+                tokio::fs::canonicalize(&trusted_root_path).await.context(
+                    error::ResolveSymlinkSnafu {
+                        path: &trusted_root_path,
+                    },
+                )?
+            } else {
+                trusted_root_path.clone()
+            };
+            let symlink_name = trusted_root_path.file_name().unwrap();
+            let target_name = symlink_name.to_string_lossy().to_string();
+            let target_name = TargetName::new(target_name);
+            signed_repo
+                .copy_target(
+                    &resolved_trusted_root_path,
+                    targets_outdir,
+                    self.target_path_exists,
+                    Some(&target_name.unwrap()),
+                )
+                .await
+                .context(error::LinkTargetsSnafu {
+                    indir: &trusted_root_path,
+                    outdir: targets_outdir,
+                })?;
+        }
+
+        // Handle the rest of the targets
         let mut target_path: Option<&PathBuf> = None;
 
         if let Some(ref fulcio_target_path) = self.fulcio_target {
@@ -280,8 +470,9 @@ impl RhtasArgs {
         if let Some(ref tsa_target_path) = self.tsa_target {
             target_path = Some(tsa_target_path);
         }
+
         if let Some(path) = target_path {
-            let targets_outdir = &self.outdir.join("targets");
+            // let targets_outdir = &self.outdir.join("targets");
             let resolved_target_path = if self.follow {
                 tokio::fs::canonicalize(path)
                     .await
@@ -305,17 +496,30 @@ impl RhtasArgs {
                     outdir: targets_outdir,
                 })?;
         }
-        signed_repo
-            .write(&self.outdir)
-            .await
-            .context(error::WriteRepoSnafu {
-                directory: &self.outdir,
-            })?;
-
         Ok(())
     }
 
-    async fn set_fulcio_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
+    async fn set_trust_root_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
+        // Check if the trusted_root.json exists
+        if tokio::fs::metadata(&trusted_root_path).await.is_ok() {
+            let mut trusted_root_target = build_targets(&trusted_root_path, self.follow).await?;
+            // Add trusted_root as a target
+            if let Some((target_name, target)) = trusted_root_target.iter_mut().next() {
+                // Add the trusted root target
+                editor
+                    .add_target(target_name.clone(), target.clone())
+                    .context(error::DelegationStructureSnafu)?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn set_fulcio_target(
+        &self,
+        editor: &mut RepositoryEditor,
+        trusted_root: &mut SigstoreTrustRoot,
+    ) -> Result<()> {
         if let Some(ref fulcio_target_path) = self.fulcio_target {
             let mut fulcio_target = build_targets(fulcio_target_path, self.follow).await?;
 
@@ -336,11 +540,62 @@ impl RhtasArgs {
                     .add_target(target_name.clone(), target.clone())
                     .context(error::DelegationStructureSnafu)?;
             }
+
+            // TrustedRoot
+            let certificate_raw_bytes =
+                RhtasArgs::load_target_bytes(fulcio_target_path).context(error::FileReadSnafu {
+                    path: fulcio_target_path.clone(),
+                })?;
+
+            #[allow(clippy::cast_possible_wrap)]
+            let current_timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.fulcio_status.clone().unwrap() == "Expired" {
+                end = timestamp;
+                start = None;
+            }
+            let new_ca = CertificateAuthority {
+                subject: Some(DistinguishedName {
+                    organization: "sigstore.dev".to_string(),
+                    common_name: "sigstore".to_string(),
+                }),
+                uri: self.fulcio_uri.clone().unwrap(),
+                cert_chain: Some(X509CertificateChain {
+                    certificates: vec![X509Certificate {
+                        raw_bytes: certificate_raw_bytes,
+                    }],
+                }),
+                valid_for: Some(TimeRange { start, end }),
+            };
+
+            match trusted_root
+                .set_target(TargetType::Authority(new_ca), Target::CertificateAuthority)
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                }
+            }
         }
         Ok(())
     }
 
-    async fn set_ctlog_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
+    async fn set_ctlog_target(
+        &self,
+        editor: &mut RepositoryEditor,
+        trusted_root: &mut SigstoreTrustRoot,
+    ) -> Result<()> {
         if let Some(ref ctlog_target_path) = self.ctlog_target {
             let mut ctlog_target = build_targets(ctlog_target_path, self.follow).await?;
 
@@ -361,11 +616,63 @@ impl RhtasArgs {
                     .add_target(target_name.clone(), target.clone())
                     .context(error::DelegationStructureSnafu)?;
             }
+
+            // TrustedRoot
+            let ctlog_raw_bytes =
+                RhtasArgs::load_target_bytes(ctlog_target_path).context(error::FileReadSnafu {
+                    path: ctlog_target_path.clone(),
+                })?;
+
+            let mut hasher = Sha256::new();
+            hasher.update(&ctlog_raw_bytes);
+            let hash_result = hasher.finalize();
+            let key_id = hash_result.to_vec();
+
+            #[allow(clippy::cast_possible_wrap)]
+            let current_timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.ctlog_status.clone().unwrap() == "Expired" {
+                end = timestamp;
+                start = None;
+            }
+            let new_ctlog = TransparencyLogInstance {
+                base_url: self.ctlog_uri.clone().unwrap(),
+                hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
+                public_key: Some(PublicKey {
+                    raw_bytes: Some(ctlog_raw_bytes),
+                    key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
+                    valid_for: Some(TimeRange { start, end }),
+                }),
+                log_id: Some(LogId { key_id }),
+                checkpoint_key_id: None,
+            };
+
+            match trusted_root.set_target(TargetType::Log(new_ctlog), Target::Ctlog) {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                }
+            }
         }
         Ok(())
     }
 
-    async fn set_rekor_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
+    async fn set_rekor_target(
+        &self,
+        editor: &mut RepositoryEditor,
+        trusted_root: &mut SigstoreTrustRoot,
+    ) -> Result<()> {
         if let Some(ref rekor_target_path) = self.rekor_target {
             let mut rekor_target = build_targets(rekor_target_path, self.follow).await?;
 
@@ -386,11 +693,63 @@ impl RhtasArgs {
                     .add_target(target_name.clone(), target.clone())
                     .context(error::DelegationStructureSnafu)?;
             }
+
+            // TrustedRoot
+            let rekor_raw_bytes =
+                RhtasArgs::load_target_bytes(rekor_target_path).context(error::FileReadSnafu {
+                    path: rekor_target_path.clone(),
+                })?;
+
+            let mut hasher = Sha256::new();
+            hasher.update(&rekor_raw_bytes);
+            let hash_result = hasher.finalize();
+            let key_id = hash_result.to_vec();
+
+            #[allow(clippy::cast_possible_wrap)]
+            let current_timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.rekor_status.clone().unwrap() == "Expired" {
+                end = timestamp;
+                start = None;
+            }
+            let new_tlog = TransparencyLogInstance {
+                base_url: self.rekor_uri.clone().unwrap(),
+                hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
+                public_key: Some(PublicKey {
+                    raw_bytes: Some(rekor_raw_bytes),
+                    key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
+                    valid_for: Some(TimeRange { start, end }),
+                }),
+                log_id: Some(LogId { key_id }),
+                checkpoint_key_id: None,
+            };
+
+            match trusted_root.set_target(TargetType::Log(new_tlog), Target::Tlog) {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                }
+            }
         }
         Ok(())
     }
 
-    async fn set_tsa_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
+    async fn set_tsa_target(
+        &self,
+        editor: &mut RepositoryEditor,
+        trusted_root: &mut SigstoreTrustRoot,
+    ) -> Result<()> {
         if let Some(ref tsa_target_path) = self.tsa_target {
             let mut tsa_target = build_targets(tsa_target_path, self.follow).await?;
 
@@ -411,11 +770,63 @@ impl RhtasArgs {
                     .add_target(target_name.clone(), target.clone())
                     .context(error::DelegationStructureSnafu)?;
             }
+
+            // TrustedRoot
+            let certificate_raw_bytes =
+                RhtasArgs::load_target_bytes(tsa_target_path).context(error::FileReadSnafu {
+                    path: tsa_target_path.clone(),
+                })?;
+
+            #[allow(clippy::cast_possible_wrap)]
+            let current_timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+
+            let timestamp: Option<Timestamp> = Some(Timestamp {
+                seconds: current_timestamp,
+                nanos: 0,
+            });
+
+            let mut start = timestamp.clone();
+            let mut end: Option<Timestamp> = None;
+
+            if self.tsa_status.clone().unwrap() == "Expired" {
+                end = timestamp;
+                start = None;
+            }
+            let new_tsa = CertificateAuthority {
+                subject: Some(DistinguishedName {
+                    organization: "sigstore.dev".to_string(),
+                    common_name: "sigstore".to_string(),
+                }),
+                uri: self.tsa_uri.clone().unwrap(),
+                cert_chain: Some(X509CertificateChain {
+                    certificates: vec![X509Certificate {
+                        raw_bytes: certificate_raw_bytes,
+                    }],
+                }),
+                valid_for: Some(TimeRange { start, end }),
+            };
+
+            match trusted_root
+                .set_target(TargetType::Authority(new_tsa), Target::TimestampAuthority)
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                }
+            }
         }
         Ok(())
     }
 
-    async fn remove_target_file(&self, target_name: &str) -> Result<()> {
+    async fn remove_target_file(
+        &self,
+        target_name: &str,
+        sigstore_trust_root: &mut SigstoreTrustRoot,
+        target_type: Target,
+    ) -> Result<()> {
         let targets_dir = self.outdir.join("targets");
 
         if !targets_dir.exists() {
@@ -439,18 +850,30 @@ impl RhtasArgs {
         {
             let file_name = entry.file_name();
             let file_name_str = file_name.to_string_lossy();
-
             if file_name_str.contains(target_name) {
                 target_found = true;
                 let file_path = entry.path();
+
+                let identifier =
+                    RhtasArgs::load_target_bytes(&file_path).context(error::FileReadSnafu {
+                        path: file_path.clone(),
+                    })?;
+
+                // Remove target file
                 tokio::fs::remove_file(&file_path)
                     .await
                     .context(error::RemoveTargetPathSnafu {
                         path: file_path.clone(),
                     })?;
+                // Remove target from TrustedRoot
+                match sigstore_trust_root.delete_target(&target_type, &identifier) {
+                    Ok(()) => {}
+                    Err(e) => {
+                        eprintln!("Failed to delete target: {e:?} from trusted_root");
+                    }
+                }
             }
         }
-
         if !target_found {
             return error::TargetFileDoesNotExistSnafu {}.fail();
         }
@@ -558,5 +981,47 @@ impl RhtasArgs {
             self.tsa_status = Some(String::from("Active"));
         }
         Ok(())
+    }
+
+    fn load_target_bytes(target_path: &std::path::Path) -> io::Result<Vec<u8>> {
+        let mut file = File::open(target_path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        Ok(buffer)
+    }
+
+    fn get_latest_trusted_root(&self) -> PathBuf {
+        let targets_dir = self.outdir.join("targets");
+        let mut sha256_trusted_root_files: Vec<PathBuf> = Vec::new();
+        if let Ok(entries) = fs::read_dir(&targets_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(extension) = path.extension() {
+                    if extension == "json"
+                        && path
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .ends_with(".trusted_root.json")
+                    {
+                        sha256_trusted_root_files.push(path);
+                    }
+                }
+            }
+        }
+        // get the latest file based on update time
+        if !sha256_trusted_root_files.is_empty() {
+            let latest_trusted_root = sha256_trusted_root_files.into_iter().max_by_key(|path| {
+                fs::metadata(path)
+                    .and_then(|metadata| metadata.modified())
+                    .map(|time| time.duration_since(UNIX_EPOCH).unwrap_or(Duration::ZERO))
+                    .unwrap_or(Duration::ZERO)
+            });
+            if let Some(latest_file) = latest_trusted_root {
+                return latest_file;
+            }
+        }
+        // return the default "trusted_root.json" path
+        targets_dir.join("trusted_root.json")
     }
 }

@@ -6,7 +6,7 @@
 #![allow(clippy::default_trait_access)]
 
 use snafu::{Backtrace, Snafu};
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
@@ -97,6 +97,13 @@ pub(crate) enum Error {
     #[snafu(display("Invalid argument combination: {}", msg))]
     InvalidArgumentCombination { msg: String, backtrace: Backtrace },
 
+    #[snafu(display("Failed to delete file {:?}: {}", file, source))]
+    FileDelete {
+        file: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
     #[snafu(display("Failed to resolve symlink '{}': {}", path.display(), source))]
     ResolveSymlink {
         path: PathBuf,
@@ -108,6 +115,13 @@ pub(crate) enum Error {
     RemoveTarget {
         name: String,
         source: tough::error::Error,
+        backtrace: Backtrace,
+    },
+
+    #[snafu(display("Failed to read file '{}': {}", path.display(), source))]
+    FileRead {
+        path: PathBuf,
+        source: io::Error,
         backtrace: Backtrace,
     },
 

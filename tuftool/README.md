@@ -126,11 +126,11 @@ tuftool rhtas \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/
 
-# delete a target
+# delete a target: --delete-<target>-target
 tuftool rhtas \
    --root "${ROOT}" \
    --key "${WRK}/keys/root.pem" \
-   --delete-target "ctfe.pub" \
+   --delete-ctlog-target "ctfe.pub" \
    --outdir "${WRK}/tuf-repo" \
    --metadata-url file:///$WRK/tuf-repo/
 ```

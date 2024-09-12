@@ -307,6 +307,13 @@ else
   echo "Key export location not specified, not exporting keys"
 fi
 
+# Remove ununused trusted_root.json files from ${OUTDIR}/targets
+mapfile -t files_to_delete < <(find "${OUTDIR}/targets/" -type f -name "*.trusted_root.json" -print0 | xargs -0 ls -t | tail -n +2)
+for file in "${files_to_delete[@]}"; do
+    rm -- "$file"
+done
+
+
 echo "Copying the TUF repository to final location ${TUF_REPO_PATH} ..."
 # TODO: fix this based on changes in layout of tuftool output
 cp -R "${OUTDIR}/." "${TUF_REPO_PATH}"
