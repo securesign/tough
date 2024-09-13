@@ -23,6 +23,8 @@ use crate::schema::{
 use crate::transport::{IntoVec, Transport};
 use crate::{encode_filename, Limits};
 use crate::{Repository, TargetName};
+use aws_lc_rs::digest::{SHA256, SHA256_OUTPUT_LEN};
+use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use ring::digest::{SHA256, SHA256_OUTPUT_LEN};
@@ -112,7 +114,7 @@ impl RepositoryEditor {
         }
 
         let mut digest = [0; SHA256_OUTPUT_LEN];
-        digest.copy_from_slice(ring::digest::digest(&SHA256, &root_buf).as_ref());
+        digest.copy_from_slice(aws_lc_rs::digest::digest(&SHA256, &root_buf).as_ref());
 
         let signed_root = SignedRole {
             signed: root,

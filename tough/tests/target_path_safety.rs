@@ -1,5 +1,6 @@
 mod test_utils;
 
+use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, TimeZone, Utc};
 use indexmap::indexmap;
 use ring::rand::SystemRandom;

@@ -17,6 +17,7 @@ use crate::schema::{
 use crate::transport::{IntoVec, Transport};
 use crate::{encode_filename, Limits};
 use crate::{Repository, TargetName};
+use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use ring::rand::SystemRandom;
