@@ -5,6 +5,7 @@ use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
 use crate::source::parse_key_source;
 use crate::{load_file, write_file};
+use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, Timelike, Utc};
 use clap::Parser;
 use indexmap::indexmap;
