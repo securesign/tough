@@ -4533,6 +4533,7 @@ name = "tough-kms"
 version = "0.10.0"
 dependencies = [
  "aws-config",
+ "aws-lc-rs",
  "aws-sdk-kms",
  "aws-smithy-http",
  "aws-smithy-runtime",
@@ -4541,7 +4542,6 @@ dependencies = [
  "bytes",
  "http 1.1.0",
  "pem",
- "ring",
  "serde",
  "serde_json",
  "snafu",
