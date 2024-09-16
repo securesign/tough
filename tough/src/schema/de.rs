@@ -1,6 +1,7 @@
 use crate::schema::decoded::{Decoded, Hex};
 use crate::schema::error;
 use crate::schema::key::Key;
+use itertools::Itertools;
 use serde::{de::Error as _, Deserialize, Deserializer};
 use snafu::ensure;
 use std::collections::HashMap;
@@ -56,7 +57,12 @@ where
             while let Some((keyid, key)) = access.next_entry()? {
                 validate_and_insert_entry(keyid, key, &mut map).map_err(M::Error::custom)?;
             }
-            Ok(map)
+            let sorted_pairs: Vec<_> = map
+                .into_iter()
+                .sorted_by(|(a, _), (b, _)| a.cmp(b))
+                .collect();
+            let sorted_map: HashMap<_, _> = sorted_pairs.into_iter().collect();
+            Ok(sorted_map)
         }
     }
 
@@ -70,9 +76,14 @@ pub(super) fn extra_skip_type<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    let mut map = HashMap::deserialize(deserializer)?;
+    let mut map: HashMap<String, _> = HashMap::deserialize(deserializer)?;
     map.remove("_type");
-    Ok(map)
+    let sorted_pairs: Vec<_> = map
+        .into_iter()
+        .sorted_by(|(a, _), (b, _)| a.cmp(b))
+        .collect();
+    let sorted_map: HashMap<_, _> = sorted_pairs.into_iter().collect();
+    Ok(sorted_map)
 }
 
 #[cfg(test)]

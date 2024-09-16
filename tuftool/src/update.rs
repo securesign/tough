@@ -138,6 +138,7 @@ impl UpdateArgs {
         .await
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn update_metadata(&self, mut editor: RepositoryEditor) -> Result<()> {
         let mut keys = Vec::new();
         for source in &self.keys {
@@ -145,25 +146,15 @@ impl UpdateArgs {
             keys.push(key_source);
         }
 
+        self.update_all_metadata(&mut editor)?;
+
         if self.force_version {
-            self.update_metadata_version(&mut editor);
+            self.update_metadata_version(&mut editor)?;
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
         {
             return error::ForceVersionMissingSnafu {}.fail();
-        }
-
-        if let Some(_expires) = self.targets_expires {
-            let _ = editor.targets_expires(self.targets_expires.unwrap());
-        }
-
-        if let Some(_expires) = self.snapshot_expires {
-            let _ = editor.snapshot_expires(self.snapshot_expires.unwrap());
-        }
-
-        if let Some(_expires) = self.timestamp_expires {
-            let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
         }
 
         // If the "add-targets" argument was passed, build a list of targets
@@ -210,9 +201,48 @@ impl UpdateArgs {
         }
 
         // Sign the repo
-        let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
+        let expiration_enforcement = if self.allow_expired_repo {
+            expired_repo_warning(&self.outdir);
+            ExpirationEnforcement::Unsafe
+        } else {
+            ExpirationEnforcement::Safe
+        };
+        let repo = RepositoryLoader::new(
+            &tokio::fs::read(&self.root)
+                .await
+                .context(error::OpenRootSnafu { path: &self.root })?,
+            self.metadata_base_url.clone(),
+            Url::parse(UNUSED_URL).context(error::UrlParseSnafu { url: UNUSED_URL })?,
+        )
+        .expiration_enforcement(expiration_enforcement)
+        .load()
+        .await
+        .context(error::RepoLoadSnafu)?;
 
-        // Symlink any targets that were added
+        let signed_repo;
+
+        if self.targets_indir.is_some()
+            || self.targets_version.is_some()
+            || self.targets_expires.is_some()
+        {
+            signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
+        } else if self.snapshot_expires.is_some() || self.snapshot_version.is_some() {
+            signed_repo = editor
+                .sign_snapshot(&keys, repo)
+                .await
+                .context(error::SignRepoSnafu)?;
+        } else if self.timestamp_expires.is_some() || self.timestamp_version.is_some() {
+            signed_repo = editor
+                .sign_timestamp(&keys, repo)
+                .await
+                .context(error::SignRepoSnafu)?;
+        } else {
+            signed_repo = editor
+                .preserve_metadata(repo)
+                .context(error::SignRepoSnafu)?;
+        }
+
+        // copies any targets that were added
         if let Some(ref targets_indir) = self.targets_indir {
             let targets_outdir = &self.outdir.join("targets");
             signed_repo
@@ -234,19 +264,48 @@ impl UpdateArgs {
 
         let root_path = &self.outdir.join("root.json");
         let _ = fs::copy(&self.root, root_path);
-
         Ok(())
     }
 
-    fn update_metadata_version(&self, editor: &mut RepositoryEditor) {
+    fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
         if self.snapshot_version.is_some() {
-            let _ = editor.snapshot_version(self.snapshot_version.unwrap());
+            editor.snapshot_version(self.snapshot_version.unwrap());
         }
         if self.targets_version.is_some() {
-            let _ = editor.targets_version(self.targets_version.unwrap());
+            editor
+                .targets_version(self.targets_version.unwrap())
+                .context(error::DelegationStructureSnafu)?;
         }
         if self.timestamp_version.is_some() {
-            let _ = editor.timestamp_version(self.timestamp_version.unwrap());
+            editor.timestamp_version(self.timestamp_version.unwrap());
         }
+        Ok(())
+    }
+
+    fn update_all_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.targets_indir.is_some()
+            || self.targets_version.is_some()
+            || self.targets_expires.is_some()
+        {
+            if self.targets_expires.is_some() {
+                editor
+                    .targets_expires(self.targets_expires.unwrap())
+                    .context(error::DelegationStructureSnafu)?;
+            }
+            editor
+                .bump_targets_version()
+                .context(error::DelegationStructureSnafu)?;
+        }
+        if self.snapshot_expires.is_some() {
+            editor.snapshot_expires(self.snapshot_expires.unwrap());
+        }
+        editor.bump_snapshot_version();
+
+        if self.timestamp_expires.is_some() {
+            editor.timestamp_expires(self.timestamp_expires.unwrap());
+        }
+        editor.bump_timestamp_version();
+
+        Ok(())
     }
 }

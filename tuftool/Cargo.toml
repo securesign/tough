@@ -44,6 +44,7 @@ tough-kms = { version = "0.9", path = "../tough-kms" }
 tough-ssm = { version = "0.12", path = "../tough-ssm" }
 url = "2"
 walkdir = "2"
+indexmap = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 assert_cmd = "2"

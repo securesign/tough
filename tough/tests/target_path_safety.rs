@@ -1,7 +1,7 @@
 mod test_utils;
 
 use chrono::{DateTime, TimeZone, Utc};
-use maplit::hashmap;
+use indexmap::indexmap;
 use ring::rand::SystemRandom;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
@@ -44,7 +44,7 @@ async fn create_root(root_path: &Path, consistent_snapshot: bool) -> Vec<Box<dyn
             version: NonZeroU64::new(1).unwrap(),
             expires: later(),
             keys: HashMap::new(),
-            roles: hashmap! {
+            roles: indexmap! {
                 RoleType::Root => empty_keys.clone(),
                 RoleType::Snapshot => empty_keys.clone(),
                 RoleType::Targets => empty_keys.clone(),

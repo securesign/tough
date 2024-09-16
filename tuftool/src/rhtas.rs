@@ -337,26 +337,16 @@ impl RhtasArgs {
     }
 
     fn update_repository_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        self.update_all_metadata(editor)?;
+
         if self.force_version {
-            self.update_metadata_version(editor);
+            let _ = self.update_metadata_version(editor);
         } else if self.snapshot_version.is_some()
             || self.targets_version.is_some()
             || self.timestamp_version.is_some()
         {
             return error::ForceVersionMissingSnafu {}.fail();
         }
-
-        if let Some(_expires) = self.targets_expires {
-            let _ = editor.targets_expires(self.targets_expires.unwrap());
-        }
-
-        if let Some(_expires) = self.snapshot_expires {
-            let _ = editor.snapshot_expires(self.snapshot_expires.unwrap());
-        }
-
-        if let Some(_expires) = self.timestamp_expires {
-            let _ = editor.timestamp_expires(self.timestamp_expires.unwrap());
-        };
         Ok(())
     }
 
@@ -880,16 +870,53 @@ impl RhtasArgs {
         Ok(())
     }
 
-    fn update_metadata_version(&self, editor: &mut RepositoryEditor) {
+    fn update_metadata_version(&self, editor: &mut RepositoryEditor) -> Result<()> {
         if self.snapshot_version.is_some() {
-            let _ = editor.snapshot_version(self.snapshot_version.unwrap());
+            editor.snapshot_version(self.snapshot_version.unwrap());
         }
         if self.targets_version.is_some() {
-            let _ = editor.targets_version(self.targets_version.unwrap());
+            editor
+                .targets_version(self.targets_version.unwrap())
+                .context(error::DelegationStructureSnafu)?;
         }
         if self.timestamp_version.is_some() {
-            let _ = editor.timestamp_version(self.timestamp_version.unwrap());
+            editor.timestamp_version(self.timestamp_version.unwrap());
         }
+        Ok(())
+    }
+
+    fn update_all_metadata(&self, editor: &mut RepositoryEditor) -> Result<()> {
+        if self.fulcio_target.is_some()
+            || self.ctlog_target.is_some()
+            || self.rekor_target.is_some()
+            || self.tsa_target.is_some()
+            || !self.delete_fulcio_targets.is_empty()
+            || !self.delete_tsa_targets.is_empty()
+            || !self.delete_ctlog_targets.is_empty()
+            || !self.delete_rekor_targets.is_empty()
+        {
+            if self.targets_expires.is_some() {
+                editor
+                    .targets_expires(self.targets_expires.unwrap())
+                    .context(error::DelegationStructureSnafu)?;
+            }
+            editor
+                .bump_targets_version()
+                .context(error::DelegationStructureSnafu)?;
+
+            if self.snapshot_expires.is_some() {
+                editor.snapshot_expires(self.snapshot_expires.unwrap());
+            }
+
+            editor.bump_snapshot_version();
+
+            if self.timestamp_expires.is_some() {
+                editor.timestamp_expires(self.timestamp_expires.unwrap());
+            }
+
+            editor.bump_timestamp_version();
+        }
+        Ok(())
     }
 
     fn validate_and_set_defaults(&mut self) -> Result<()> {
