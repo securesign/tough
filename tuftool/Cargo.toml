@@ -16,7 +16,7 @@ aws-sdk-rust-rustls = ["aws-config/rustls", "aws-sdk-ssm/rustls", "aws-sdk-kms/r
 sigstore = ["sigstore_protobuf_specs"]
 
 [dependencies]
-aws-config = "1"
+aws-config = { version = "1", default-features = false, features = ["credentials-process"] }
 aws-lc-rs = { version = "1", features = ["prebuilt-nasm"] }
 aws-sdk-kms = "1"
 aws-sdk-ssm = "1"
