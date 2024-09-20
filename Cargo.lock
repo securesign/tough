@@ -704,15 +704,9 @@ dependencies = [
 
 [[package]]
 name = "base64ct"
-<<<<<<< HEAD
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
-=======
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6b4d9b1225d28d360ec6a231d65af1fd99a2a095154c8040689617290569c5c"
->>>>>>> 73967e6 (update: use pkcs8 instead of openssl)
 
 [[package]]
 name = "bitflags"
@@ -762,7 +756,8 @@ checksum = "2c132eebf10f5cad5289222520a4a058514204aed6d791f1cf4fe8088b82d15f"
 dependencies = [
  "objc2",
 ]
-=======
+
+[[package]]
 name = "block-modes"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -771,13 +766,6 @@ dependencies = [
  "block-padding",
  "cipher",
 ]
-
-[[package]]
-name = "block-padding"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
->>>>>>> 73967e6 (update: use pkcs8 instead of openssl)
 
 [[package]]
 name = "bmrng"
@@ -1131,6 +1119,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "crypto_secretbox"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1243,6 +1232,8 @@ dependencies = [
  "quote",
  "syn 2.0.77",
 =======
+=======
+>>>>>>> b85189b (upgrade to base64 v0.22)
 name = "crypto-mac"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1251,6 +1242,12 @@ dependencies = [
  "generic-array",
  "subtle",
 ]
+
+[[package]]
+name = "data-encoding"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 
 [[package]]
 name = "der"
@@ -4458,7 +4455,7 @@ version = "0.17.1"
 dependencies = [
  "async-recursion",
  "async-trait",
- "base64 0.21.7",
+ "base64 0.22.1",
  "bytes",
  "chrono",
  "dyn-clone",
