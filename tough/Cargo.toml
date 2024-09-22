@@ -40,8 +40,6 @@ walkdir = "2"
 itertools = "0.13.0"
 indexmap = { version = "2.5.0", features = ["serde"] }
 openssl = "0.10"
-pkcs8 = { version = "0.7", features = ["encryption", "pem", "std"] }
-base64 = "0.21"
 
 [dev-dependencies]
 failure-server = { path = "../integ/failure-server" }
