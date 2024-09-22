@@ -4449,7 +4449,6 @@ dependencies = [
  "log",
  "maplit",
  "olpc-cjson 0.1.3",
- "openssl",
  "pem",
  "percent-encoding",
  "pkcs8 0.7.6",
