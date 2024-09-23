@@ -114,14 +114,26 @@ async fn update_command_timestamp_only() {
     assert_eq!(repo.targets().signed.targets.len(), 3);
 
     // Ensure all the metadata has been updated
-    assert_eq!(repo.targets().signed.expires, create_repo.targets().signed.expires);
+    assert_eq!(
+        repo.targets().signed.expires,
+        create_repo.targets().signed.expires
+    );
     assert_eq!(repo.targets().signatures, create_repo.targets().signatures);
     assert_eq!(repo.targets().signed.version.get(), 1);
-    assert_eq!(repo.snapshot().signed.expires, create_repo.snapshot().signed.expires);
-    assert_eq!(repo.snapshot().signatures, create_repo.snapshot().signatures);
+    assert_eq!(
+        repo.snapshot().signed.expires,
+        create_repo.snapshot().signed.expires
+    );
+    assert_eq!(
+        repo.snapshot().signatures,
+        create_repo.snapshot().signatures
+    );
     assert_eq!(repo.snapshot().signed.version.get(), 1);
     assert_eq!(repo.timestamp().signed.expires, new_timestamp_expiration);
-    assert_ne!(repo.timestamp().signatures, create_repo.timestamp().signatures);
+    assert_ne!(
+        repo.timestamp().signatures,
+        create_repo.timestamp().signatures
+    );
     assert_eq!(repo.timestamp().signed.version.get(), 2);
 }
 
@@ -185,14 +197,26 @@ async fn update_command_snapshot_only() {
     assert_eq!(repo.targets().signed.targets.len(), 3);
 
     // Ensure all the metadata has been updated
-    assert_eq!(repo.targets().signed.expires, create_repo.targets().signed.expires);
+    assert_eq!(
+        repo.targets().signed.expires,
+        create_repo.targets().signed.expires
+    );
     assert_eq!(repo.targets().signatures, create_repo.targets().signatures);
     assert_eq!(repo.targets().signed.version.get(), 1);
     assert_eq!(repo.snapshot().signed.expires, new_snapshot_expiration);
-    assert_ne!(repo.snapshot().signatures, create_repo.snapshot().signatures);
+    assert_ne!(
+        repo.snapshot().signatures,
+        create_repo.snapshot().signatures
+    );
     assert_eq!(repo.snapshot().signed.version.get(), 2);
-    assert_eq!(repo.timestamp().signed.expires, create_repo.timestamp().signed.expires);
-    assert_ne!(repo.timestamp().signatures, create_repo.timestamp().signatures);
+    assert_eq!(
+        repo.timestamp().signed.expires,
+        create_repo.timestamp().signed.expires
+    );
+    assert_ne!(
+        repo.timestamp().signatures,
+        create_repo.timestamp().signatures
+    );
     assert_eq!(repo.timestamp().signed.version.get(), 2);
 }
 
@@ -259,11 +283,23 @@ async fn update_command_target_only() {
     assert_eq!(repo.targets().signed.expires, new_target_expiration);
     assert_ne!(repo.targets().signatures, create_repo.targets().signatures);
     assert_eq!(repo.targets().signed.version.get(), 2);
-    assert_eq!(repo.snapshot().signed.expires, create_repo.snapshot().signed.expires);
-    assert_ne!(repo.snapshot().signatures, create_repo.snapshot().signatures);
+    assert_eq!(
+        repo.snapshot().signed.expires,
+        create_repo.snapshot().signed.expires
+    );
+    assert_ne!(
+        repo.snapshot().signatures,
+        create_repo.snapshot().signatures
+    );
     assert_eq!(repo.snapshot().signed.version.get(), 2);
-    assert_eq!(repo.timestamp().signed.expires, create_repo.timestamp().signed.expires);
-    assert_ne!(repo.timestamp().signatures, create_repo.timestamp().signatures);
+    assert_eq!(
+        repo.timestamp().signed.expires,
+        create_repo.timestamp().signed.expires
+    );
+    assert_ne!(
+        repo.timestamp().signatures,
+        create_repo.timestamp().signatures
+    );
     assert_eq!(repo.timestamp().signed.version.get(), 2);
 }
 
@@ -323,14 +359,29 @@ async fn update_command_without_metadata_flags() {
     assert_eq!(repo.targets().signed.targets.len(), 3);
 
     // Ensure all the metadata has been updated
-    assert_eq!(repo.targets().signed.expires, create_repo.targets().signed.expires);
+    assert_eq!(
+        repo.targets().signed.expires,
+        create_repo.targets().signed.expires
+    );
     assert_eq!(repo.targets().signatures, create_repo.targets().signatures);
     assert_eq!(repo.targets().signed.version.get(), 1);
-    assert_eq!(repo.snapshot().signed.expires, create_repo.snapshot().signed.expires);
-    assert_eq!(repo.snapshot().signatures, create_repo.snapshot().signatures);
+    assert_eq!(
+        repo.snapshot().signed.expires,
+        create_repo.snapshot().signed.expires
+    );
+    assert_eq!(
+        repo.snapshot().signatures,
+        create_repo.snapshot().signatures
+    );
     assert_eq!(repo.snapshot().signed.version.get(), 1);
-    assert_eq!(repo.timestamp().signed.expires, create_repo.timestamp().signed.expires);
-    assert_eq!(repo.timestamp().signatures, create_repo.timestamp().signatures);
+    assert_eq!(
+        repo.timestamp().signed.expires,
+        create_repo.timestamp().signed.expires
+    );
+    assert_eq!(
+        repo.timestamp().signatures,
+        create_repo.timestamp().signatures
+    );
     assert_eq!(repo.timestamp().signed.version.get(), 1);
 }
 
@@ -374,7 +425,7 @@ async fn update_command_force_flag() {
             metadata_base_url.as_str(),
             "--force-version",
             "--timestamp-version",
-            "5"
+            "5",
         ])
         .assert()
         .success();
@@ -393,14 +444,28 @@ async fn update_command_force_flag() {
     assert_eq!(repo.targets().signed.targets.len(), 3);
 
     // Ensure all the metadata has been updated
-    assert_eq!(repo.targets().signed.expires, create_repo.targets().signed.expires);
+    assert_eq!(
+        repo.targets().signed.expires,
+        create_repo.targets().signed.expires
+    );
     assert_eq!(repo.targets().signatures, create_repo.targets().signatures);
     assert_eq!(repo.targets().signed.version.get(), 1);
-    assert_eq!(repo.snapshot().signed.expires, create_repo.snapshot().signed.expires);
-    assert_eq!(repo.snapshot().signatures, create_repo.snapshot().signatures);
+    assert_eq!(
+        repo.snapshot().signed.expires,
+        create_repo.snapshot().signed.expires
+    );
+    assert_eq!(
+        repo.snapshot().signatures,
+        create_repo.snapshot().signatures
+    );
     assert_eq!(repo.snapshot().signed.version.get(), 1);
-    assert_eq!(repo.timestamp().signed.expires, create_repo.timestamp().signed.expires);
-    assert_ne!(repo.timestamp().signatures, create_repo.timestamp().signatures);
+    assert_eq!(
+        repo.timestamp().signed.expires,
+        create_repo.timestamp().signed.expires
+    );
+    assert_ne!(
+        repo.timestamp().signatures,
+        create_repo.timestamp().signatures
+    );
     assert_eq!(repo.timestamp().signed.version.get(), 5);
 }
-
