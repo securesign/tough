@@ -3823,8 +3823,8 @@ dependencies = [
 
 [[package]]
 name = "sigstore"
-version = "0.9.0"
-source = "git+https://github.com/fghanmi/sigstore-rs.git?branch=target_v1#8248efbaf8d8529bc6e724d10c604ec75f0f90b8"
+version = "0.10.0"
+source = "git+https://github.com/securesign/sigstore-rs.git?branch=main#68aa20594d29f02ec08eb596c9d7014a0f0170fc"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -3855,6 +3855,7 @@ dependencies = [
  "prost-types",
  "rand",
  "regex",
+ "reqwest 0.11.27",
  "reqwest 0.12.7",
  "ring",
  "rsa",

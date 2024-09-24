@@ -94,4 +94,4 @@ skip-tree = [
 # Deny crates from unknown registries or git repositories.
 unknown-registry = "deny"
 unknown-git = "deny"
-allow-git = ["https://github.com/fghanmi/sigstore-rs.git"]
+allow-git = ["https://github.com/securesign/sigstore-rs.git"]
