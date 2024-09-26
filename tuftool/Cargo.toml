@@ -14,10 +14,11 @@ default = ["aws-sdk-rust","sigstore_protobuf_specs"]
 aws-sdk-rust = ["aws-sdk-rust-rustls"]
 aws-sdk-rust-rustls = ["aws-config/rustls", "aws-sdk-ssm/rustls", "aws-sdk-kms/rustls", ]
 sigstore = ["sigstore_protobuf_specs"]
+fips = ["tough/fips", "rustls/fips"]
 
 [dependencies]
 aws-config = { version = "1", default-features = false, features = ["credentials-process"] }
-aws-lc-rs = { version = "1", features = ["prebuilt-nasm"] }
+aws-lc-rs = "1"
 aws-sdk-kms = "1"
 aws-sdk-ssm = "1"
 base64 = "0.21"
@@ -31,6 +32,7 @@ olpc-cjson = { version = "0.1", path = "../olpc-cjson" }
 openssl = { version = "0.10.40", features = ["vendored"] }
 rayon = "1"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls-native-roots"] }
+rustls = "0.23"
 serde = "1"
 serde_json = "1"
 serial_test = "3.1.1"
