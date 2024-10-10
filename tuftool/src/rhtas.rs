@@ -13,7 +13,6 @@ use prost_types::Timestamp;
 use serde_json::from_reader;
 use serde_json::json;
 use sha2::{Digest, Sha256};
-// use sigstore::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
 #[cfg(feature = "sigstore-trust-root")]
 use crate::sigstore_trust::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
 use sigstore_protobuf_specs::dev::sigstore::{
@@ -209,8 +208,6 @@ impl RhtasArgs {
     #[allow(clippy::too_many_lines)]
     async fn update_metadata(&self, mut editor: RepositoryEditor) -> Result<()> {
         let mut keys = Vec::new();
-        // TODO
-        // let repo= SigstoreTrustRoot::new(None).await;
         for source in &self.keys {
             let key_source = parse_key_source(source)?;
             keys.push(key_source);
