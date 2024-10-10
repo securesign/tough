@@ -26,6 +26,7 @@ mod remove_key_role;
 mod remove_role;
 mod rhtas;
 mod root;
+mod sigstore_trust;
 mod source;
 mod transfer_metadata;
 mod update;
