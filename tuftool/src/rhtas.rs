@@ -5,6 +5,8 @@ use crate::build_targets;
 use crate::common::UNUSED_URL;
 use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
+#[cfg(feature = "sigstore-trust-root")]
+use crate::sigstore_trust::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
 use crate::source::parse_key_source;
 use crate::TargetName;
 use chrono::{DateTime, Utc};
@@ -13,8 +15,6 @@ use prost_types::Timestamp;
 use serde_json::from_reader;
 use serde_json::json;
 use sha2::{Digest, Sha256};
-#[cfg(feature = "sigstore-trust-root")]
-use crate::sigstore_trust::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::{
         DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
