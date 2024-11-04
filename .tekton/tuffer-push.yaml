@@ -25,6 +25,8 @@ spec:
     value: quay.io/securesign/tuffer:{{revision}}
   - name: dockerfile
     value: Dockerfile.tuffer
+  - name: build-source-image
+    value: "true"
   pipelineSpec:
     finally:
     - name: show-sbom
