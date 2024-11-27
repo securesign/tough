@@ -6,8 +6,8 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "develop"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "develop" &&
+      ( "Dockerfile.tuffer".pathChanged() || ".tekton/tuffer-push.yaml".pathChanged() || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged() || "tough".pathChanged() || "tuftool".pathChanged() || "Makefile".pathChanged() || "rhtas".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tough
