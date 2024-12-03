@@ -8,7 +8,7 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "develop" &&
-      ( "Dockerfile.rh".pathChanged() || ".tekton/tuf-tool-pull-request.yaml".pathChanged() || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged() || "tough".pathChanged() || "tuftool".pathChanged() || "Makefile".pathChanged() )
+      ( "Dockerfile.rh".pathChanged() || ".tekton/tuf-tool-pull-request.yaml".pathChanged() || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged() || "tough/***".pathChanged() || "tuftool/***".pathChanged() || "Makefile".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tough
