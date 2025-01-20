@@ -34,6 +34,7 @@ use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
+use base64::prelude::*;
 
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
@@ -537,7 +538,7 @@ impl RhtasArgs {
 
             // TrustedRoot
             let certificate_raw_bytes =
-                RhtasArgs::load_target_bytes(fulcio_target_path).context(error::FileReadSnafu {
+                RhtasArgs::load_target_der_bytes(fulcio_target_path).context(error::FileReadSnafu {
                     path: fulcio_target_path.clone(),
                 })?;
 
@@ -613,7 +614,7 @@ impl RhtasArgs {
 
             // TrustedRoot
             let ctlog_raw_bytes =
-                RhtasArgs::load_target_bytes(ctlog_target_path).context(error::FileReadSnafu {
+                RhtasArgs::load_target_der_bytes(ctlog_target_path).context(error::FileReadSnafu {
                     path: ctlog_target_path.clone(),
                 })?;
 
@@ -695,7 +696,7 @@ impl RhtasArgs {
 
             // TrustedRoot
             let rekor_raw_bytes =
-                RhtasArgs::load_target_bytes(rekor_target_path).context(error::FileReadSnafu {
+                RhtasArgs::load_target_der_bytes(rekor_target_path).context(error::FileReadSnafu {
                     path: rekor_target_path.clone(),
                 })?;
 
@@ -777,7 +778,7 @@ impl RhtasArgs {
 
             // TrustedRoot
             let certificate_raw_bytes =
-                RhtasArgs::load_target_bytes(tsa_target_path).context(error::FileReadSnafu {
+                RhtasArgs::load_target_der_bytes(tsa_target_path).context(error::FileReadSnafu {
                     path: tsa_target_path.clone(),
                 })?;
 
@@ -859,7 +860,7 @@ impl RhtasArgs {
                 let file_path = entry.path();
 
                 let identifier =
-                    RhtasArgs::load_target_bytes(&file_path).context(error::FileReadSnafu {
+                    RhtasArgs::load_target_der_bytes(&file_path).context(error::FileReadSnafu {
                         path: file_path.clone(),
                     })?;
 
@@ -1071,11 +1072,20 @@ impl RhtasArgs {
         ))
     }
 
-    fn load_target_bytes(target_path: &std::path::Path) -> io::Result<Vec<u8>> {
+    fn load_target_der_bytes(target_path: &Path) -> io::Result<Vec<u8>> {
         let mut file = File::open(target_path)?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
-        Ok(buffer)
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+    
+        let content = buffer
+            .lines()
+            .filter(|line| !line.starts_with("-----"))
+            .collect::<String>();
+    
+        let decoded = BASE64_STANDARD.decode(&content).map_err(|err| {
+            io::Error::new(io::ErrorKind::InvalidData, format!("Base64 decode error: {}", err))
+        })?;
+        Ok(decoded)
     }
 
     fn get_latest_trusted_root(&self) -> PathBuf {
