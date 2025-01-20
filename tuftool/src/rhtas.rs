@@ -7,6 +7,7 @@ use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
 use crate::source::parse_key_source;
 use crate::TargetName;
+use base64::prelude::*;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use openssl::ec::EcKey;
@@ -34,7 +35,6 @@ use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
-use base64::prelude::*;
 
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
@@ -537,8 +537,8 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let certificate_raw_bytes =
-                RhtasArgs::load_target_der_bytes(fulcio_target_path).context(error::FileReadSnafu {
+            let certificate_raw_bytes = RhtasArgs::load_target_der_bytes(fulcio_target_path)
+                .context(error::FileReadSnafu {
                     path: fulcio_target_path.clone(),
                 })?;
 
@@ -613,10 +613,11 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let ctlog_raw_bytes =
-                RhtasArgs::load_target_der_bytes(ctlog_target_path).context(error::FileReadSnafu {
+            let ctlog_raw_bytes = RhtasArgs::load_target_der_bytes(ctlog_target_path).context(
+                error::FileReadSnafu {
                     path: ctlog_target_path.clone(),
-                })?;
+                },
+            )?;
 
             let key_details = RhtasArgs::detect_public_key_details(ctlog_target_path);
             if key_details.is_err() {
@@ -695,10 +696,11 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let rekor_raw_bytes =
-                RhtasArgs::load_target_der_bytes(rekor_target_path).context(error::FileReadSnafu {
+            let rekor_raw_bytes = RhtasArgs::load_target_der_bytes(rekor_target_path).context(
+                error::FileReadSnafu {
                     path: rekor_target_path.clone(),
-                })?;
+                },
+            )?;
 
             let key_details = RhtasArgs::detect_public_key_details(rekor_target_path);
             if key_details.is_err() {
@@ -777,10 +779,11 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let certificate_raw_bytes =
-                RhtasArgs::load_target_der_bytes(tsa_target_path).context(error::FileReadSnafu {
+            let certificate_raw_bytes = RhtasArgs::load_target_der_bytes(tsa_target_path).context(
+                error::FileReadSnafu {
                     path: tsa_target_path.clone(),
-                })?;
+                },
+            )?;
 
             #[allow(clippy::cast_possible_wrap)]
             let current_timestamp = SystemTime::now()
@@ -1076,14 +1079,17 @@ impl RhtasArgs {
         let mut file = File::open(target_path)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
-    
+
         let content = buffer
             .lines()
             .filter(|line| !line.starts_with("-----"))
             .collect::<String>();
-    
+
         let decoded = BASE64_STANDARD.decode(&content).map_err(|err| {
-            io::Error::new(io::ErrorKind::InvalidData, format!("Base64 decode error: {}", err))
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Base64 decode error: {}", err),
+            )
         })?;
         Ok(decoded)
     }
