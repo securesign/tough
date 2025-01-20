@@ -1085,10 +1085,10 @@ impl RhtasArgs {
             .filter(|line| !line.starts_with("-----"))
             .collect::<String>();
 
-        let decoded = BASE64_STANDARD.decode(&content).map_err(|err| {
+        let decoded = BASE64_STANDARD.decode(content).map_err(|err| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Base64 decode error: {}", err),
+                format!("Base64 decode error: {err}"),
             )
         })?;
         Ok(decoded)
