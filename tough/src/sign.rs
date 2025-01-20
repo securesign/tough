@@ -32,6 +32,7 @@ pub trait Sign: Sync + Send {
 
 /// Implements `Sign` for a reference to any type that implements `Sign`.
 #[async_trait]
+#[allow(clippy::needless_lifetimes)]
 impl<'a, T: Sign> Sign for &'a T {
     fn tuf_key(&self) -> Key {
         (*self).tuf_key()

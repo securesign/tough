@@ -833,6 +833,7 @@ impl RepositoryEditor {
     // =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
 
     /// Build the `Snapshot` struct
+    #[allow(clippy::ref_option)]
     fn build_snapshot(
         &self,
         signed_targets: &SignedRole<Targets>,
