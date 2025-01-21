@@ -537,7 +537,7 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let certificate_raw_bytes = RhtasArgs::load_target_der_bytes(fulcio_target_path)
+            let certificate_raw_bytes_vec = RhtasArgs::load_target_der_bytes(fulcio_target_path)
                 .context(error::FileReadSnafu {
                     path: fulcio_target_path.clone(),
                 })?;
@@ -560,17 +560,19 @@ impl RhtasArgs {
                 end = timestamp;
                 start = None;
             }
+
+            let mut certificates: Vec<X509Certificate> = Vec::new();
+            for item in certificate_raw_bytes_vec {
+                certificates.push(X509Certificate { raw_bytes: item });
+            }
+
             let new_ca = CertificateAuthority {
                 subject: Some(DistinguishedName {
                     organization: "sigstore.dev".to_string(),
                     common_name: "sigstore".to_string(),
                 }),
                 uri: self.fulcio_uri.clone().unwrap(),
-                cert_chain: Some(X509CertificateChain {
-                    certificates: vec![X509Certificate {
-                        raw_bytes: certificate_raw_bytes,
-                    }],
-                }),
+                cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
             };
 
@@ -613,7 +615,7 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let ctlog_raw_bytes = RhtasArgs::load_target_der_bytes(ctlog_target_path).context(
+            let ctlog_raw_bytes_vec = RhtasArgs::load_target_der_bytes(ctlog_target_path).context(
                 error::FileReadSnafu {
                     path: ctlog_target_path.clone(),
                 },
@@ -624,8 +626,10 @@ impl RhtasArgs {
                 return error::InvalidPublicKeySnafu {}.fail();
             }
 
+            let ctlog_raw_bytes = ctlog_raw_bytes_vec[0].clone();
+
             let mut hasher = Sha256::new();
-            hasher.update(&ctlog_raw_bytes);
+            hasher.update(ctlog_raw_bytes.clone());
             let hash_result = hasher.finalize();
             let key_id = hash_result.to_vec();
 
@@ -696,7 +700,7 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let rekor_raw_bytes = RhtasArgs::load_target_der_bytes(rekor_target_path).context(
+            let rekor_raw_bytes_vec = RhtasArgs::load_target_der_bytes(rekor_target_path).context(
                 error::FileReadSnafu {
                     path: rekor_target_path.clone(),
                 },
@@ -707,8 +711,10 @@ impl RhtasArgs {
                 return error::InvalidPublicKeySnafu {}.fail();
             }
 
+            let rekor_raw_bytes = rekor_raw_bytes_vec[0].clone();
+
             let mut hasher = Sha256::new();
-            hasher.update(&rekor_raw_bytes);
+            hasher.update(rekor_raw_bytes.clone());
             let hash_result = hasher.finalize();
             let key_id = hash_result.to_vec();
 
@@ -779,11 +785,10 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let certificate_raw_bytes = RhtasArgs::load_target_der_bytes(tsa_target_path).context(
-                error::FileReadSnafu {
+            let certificate_raw_bytes_vec = RhtasArgs::load_target_der_bytes(tsa_target_path)
+                .context(error::FileReadSnafu {
                     path: tsa_target_path.clone(),
-                },
-            )?;
+                })?;
 
             #[allow(clippy::cast_possible_wrap)]
             let current_timestamp = SystemTime::now()
@@ -803,17 +808,19 @@ impl RhtasArgs {
                 end = timestamp;
                 start = None;
             }
+
+            let mut certificates: Vec<X509Certificate> = Vec::new();
+            for item in certificate_raw_bytes_vec {
+                certificates.push(X509Certificate { raw_bytes: item });
+            }
+
             let new_tsa = CertificateAuthority {
                 subject: Some(DistinguishedName {
                     organization: "sigstore.dev".to_string(),
                     common_name: "sigstore".to_string(),
                 }),
                 uri: self.tsa_uri.clone().unwrap(),
-                cert_chain: Some(X509CertificateChain {
-                    certificates: vec![X509Certificate {
-                        raw_bytes: certificate_raw_bytes,
-                    }],
-                }),
+                cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
             };
 
@@ -874,7 +881,7 @@ impl RhtasArgs {
                         path: file_path.clone(),
                     })?;
                 // Remove target from TrustedRoot
-                match sigstore_trust_root.delete_target(&target_type, &identifier) {
+                match sigstore_trust_root.delete_target(&target_type, &identifier[0]) {
                     Ok(()) => {}
                     Err(e) => {
                         eprintln!("Failed to delete target: {e:?} from trusted_root");
@@ -1075,23 +1082,33 @@ impl RhtasArgs {
         ))
     }
 
-    fn load_target_der_bytes(target_path: &Path) -> io::Result<Vec<u8>> {
+    fn load_target_der_bytes(target_path: &Path) -> io::Result<Vec<Vec<u8>>> {
         let mut file = File::open(target_path)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
 
-        let content = buffer
-            .lines()
-            .filter(|line| !line.starts_with("-----"))
-            .collect::<String>();
+        let mut result = Vec::new();
+        let mut content = String::new();
+        let mut inside_block = false;
 
-        let decoded = BASE64_STANDARD.decode(content).map_err(|err| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("Base64 decode error: {err}"),
-            )
-        })?;
-        Ok(decoded)
+        for line in buffer.lines() {
+            if line.starts_with("-----BEGIN") {
+                content.clear();
+                inside_block = true;
+            } else if line.starts_with("-----END") {
+                let decoded = BASE64_STANDARD.decode(&content).map_err(|err| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("Base64 decode error: {err}"),
+                    )
+                })?;
+                result.push(decoded);
+                inside_block = false;
+            } else if inside_block {
+                content.push_str(line);
+            }
+        }
+        Ok(result)
     }
 
     fn get_latest_trusted_root(&self) -> PathBuf {
