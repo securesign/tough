@@ -292,7 +292,8 @@ impl RepositoryEditor {
             })
         };
 
-        let signed_snapshot = self.build_snapshot(&signed_targets, &signed_delegated_targets)?;
+        let signed_snapshot =
+            self.build_snapshot(&signed_targets, signed_delegated_targets.as_ref())?;
         let signed_snapshot = SignedRole::new(signed_snapshot, &root, keys, &rng).await?;
         let signed_timestamp = self.build_timestamp(&signed_snapshot)?;
         let signed_timestamp = SignedRole::new(signed_timestamp, &root, keys, &rng).await?;
