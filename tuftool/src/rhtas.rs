@@ -7,7 +7,6 @@ use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
 use crate::source::parse_key_source;
 use crate::TargetName;
-use base64::prelude::*;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use openssl::ec::EcKey;
@@ -35,7 +34,6 @@ use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
-
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
     /// Allow repo download for expired metadata
@@ -1087,28 +1085,14 @@ impl RhtasArgs {
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
 
-        let mut result = Vec::new();
-        let mut content = String::new();
-        let mut inside_block = false;
+        let pems = pem::parse_many(buffer).map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("PEM parse error: {err}"),
+            )
+        })?;
 
-        for line in buffer.lines() {
-            if line.starts_with("-----BEGIN") {
-                content.clear();
-                inside_block = true;
-            } else if line.starts_with("-----END") {
-                let decoded = BASE64_STANDARD.decode(&content).map_err(|err| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format!("Base64 decode error: {err}"),
-                    )
-                })?;
-                result.push(decoded);
-                inside_block = false;
-            } else if inside_block {
-                content.push_str(line);
-            }
-        }
-        Ok(result)
+        Ok(pems.into_iter().map(pem::Pem::into_contents).collect())
     }
 
     fn get_latest_trusted_root(&self) -> PathBuf {
