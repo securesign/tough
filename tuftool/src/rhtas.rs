@@ -9,6 +9,10 @@ use crate::source::parse_key_source;
 use crate::TargetName;
 use chrono::{DateTime, Utc};
 use clap::Parser;
+use openssl::ec::EcKey;
+use openssl::nid::Nid;
+use openssl::pkey::PKey;
+use openssl::rsa::Rsa;
 use prost_types::Timestamp;
 use serde_json::from_reader;
 use serde_json::json;
@@ -613,6 +617,11 @@ impl RhtasArgs {
                     path: ctlog_target_path.clone(),
                 })?;
 
+            let key_details = RhtasArgs::detect_public_key_details(ctlog_target_path);
+            if key_details.is_err() {
+                return error::InvalidPublicKeySnafu {}.fail();
+            }
+
             let mut hasher = Sha256::new();
             hasher.update(&ctlog_raw_bytes);
             let hash_result = hasher.finalize();
@@ -641,7 +650,7 @@ impl RhtasArgs {
                 hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
                 public_key: Some(PublicKey {
                     raw_bytes: Some(ctlog_raw_bytes),
-                    key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
+                    key_details: key_details.unwrap(),
                     valid_for: Some(TimeRange { start, end }),
                 }),
                 log_id: Some(LogId { key_id }),
@@ -690,6 +699,11 @@ impl RhtasArgs {
                     path: rekor_target_path.clone(),
                 })?;
 
+            let key_details = RhtasArgs::detect_public_key_details(rekor_target_path);
+            if key_details.is_err() {
+                return error::InvalidPublicKeySnafu {}.fail();
+            }
+
             let mut hasher = Sha256::new();
             hasher.update(&rekor_raw_bytes);
             let hash_result = hasher.finalize();
@@ -718,7 +732,7 @@ impl RhtasArgs {
                 hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
                 public_key: Some(PublicKey {
                     raw_bytes: Some(rekor_raw_bytes),
-                    key_details: 5, // PkixEcdsaP256Sha256 = 5 => PKIX_ECDSA_P256_SHA_256
+                    key_details: key_details.unwrap(),
                     valid_for: Some(TimeRange { start, end }),
                 }),
                 log_id: Some(LogId { key_id }),
@@ -1008,6 +1022,53 @@ impl RhtasArgs {
             self.tsa_status = Some(String::from("Active"));
         }
         Ok(())
+    }
+
+    fn detect_public_key_details(key_path: &Path) -> io::Result<i32> {
+        let mut file = File::open(key_path)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+
+        // EC key
+        if let Ok(ec_key) = EcKey::public_key_from_pem(buffer.as_bytes()) {
+            let group = ec_key.group();
+            let curve = group.curve_name();
+            let key_type_id = match curve {
+                Some(Nid::X9_62_PRIME256V1) => Ok(5),
+                Some(Nid::SECP384R1) => Ok(12),
+                Some(Nid::SECP521R1) => Ok(13),
+                _ => Err(io::Error::new(io::ErrorKind::InvalidData, "Unknown curve")),
+            };
+            return key_type_id;
+        }
+        // RSA key
+        if let Ok(rsa_key) = Rsa::public_key_from_pem(buffer.as_bytes())
+            .or_else(|_| Rsa::public_key_from_pem_pkcs1(buffer.as_bytes()))
+        {
+            // key_size: bits
+            let key_size = rsa_key.size() * 8;
+            let key_type_id = match key_size {
+                2048 => Ok(9),
+                3072 => Ok(10),
+                4096 => Ok(11),
+                _ => Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "Unknown RSA key size",
+                )),
+            };
+            return key_type_id;
+        }
+
+        // ED25519 key
+        if let Ok(pkey) = PKey::public_key_from_pem(buffer.as_bytes()) {
+            if pkey.id() == openssl::pkey::Id::ED25519 {
+                return Ok(7);
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Invalid public key format",
+        ))
     }
 
     fn load_target_bytes(target_path: &std::path::Path) -> io::Result<Vec<u8>> {

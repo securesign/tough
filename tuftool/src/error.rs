@@ -76,6 +76,11 @@ pub(crate) enum Error {
     #[snafu(display("Invalid target status. The status must be either 'Active' or 'Expired'"))]
     NoValidTargetStatus { backtrace: Backtrace },
 
+    #[snafu(display(
+        "Invalid public key. The key may be corrupted, unsupported, or incorrectly formatted."
+    ))]
+    InvalidPublicKey { backtrace: Backtrace },
+
     #[snafu(display("Unable to create directory: {:?}", path))]
     CreateDir {
         path: PathBuf,

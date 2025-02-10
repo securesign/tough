@@ -134,7 +134,10 @@ async fn rhtas_command_add_new_target() {
     let ctfe = TargetName::new("ctfe.pub").unwrap();
     assert_eq!(
         test_utils::read_to_end(repo.read_target(&ctfe).await.unwrap().unwrap()).await,
-        &b"ctfe.pub content"[..]
+        &b"-----BEGIN PUBLIC KEY-----\n\
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbfwR+RJudXscgRBRpKX1XFDy3Pyu\n\
+        dDxz/SfnRi1fT8ekpfBd2O1uoz7jr3Z8nKzxA69EUQ+eFCFI3zeubPWU7w==\n\
+        -----END PUBLIC KEY-----"[..]
     );
     // Ensure trusted_root.json was created as a target and non-empty
     let trusted_root = TargetName::new("trusted_root.json").unwrap();
@@ -204,13 +207,19 @@ async fn rhtas_command_update_target() {
     let ctfe = TargetName::new("ctfe.pub").unwrap();
     assert_eq!(
         test_utils::read_to_end(repo.read_target(&ctfe).await.unwrap().unwrap()).await,
-        &b"ctfe.pub content"[..]
+        &b"-----BEGIN PUBLIC KEY-----\n\
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbfwR+RJudXscgRBRpKX1XFDy3Pyu\n\
+        dDxz/SfnRi1fT8ekpfBd2O1uoz7jr3Z8nKzxA69EUQ+eFCFI3zeubPWU7w==\n\
+        -----END PUBLIC KEY-----"[..]
     );
 
     // Update the target
     let target_input = fs::File::create(new_targets_input_dir.clone());
     assert!(target_input.is_ok());
-    let new_content = "This is the new content of the target.";
+    let new_content = "-----BEGIN PUBLIC KEY-----\n\
+    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEiPSlFi0CmFTfEjCUqF9HuCEcYXNK\n\
+    AaYalIJmBZ8yyezPjTqhxrKBpMnaocVtLJBI1eM3uXnQzQGAJdJ4gs9Fyw==\n\
+    -----END PUBLIC KEY-----";
     assert!(target_input
         .as_ref()
         .unwrap()
@@ -256,11 +265,15 @@ async fn rhtas_command_update_target() {
 
     // Revert the target file content to its original state.
     let target_input = fs::File::create(new_targets_input_dir.clone());
+    let new_target = "-----BEGIN PUBLIC KEY-----\n\
+    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbfwR+RJudXscgRBRpKX1XFDy3Pyu\n\
+    dDxz/SfnRi1fT8ekpfBd2O1uoz7jr3Z8nKzxA69EUQ+eFCFI3zeubPWU7w==\n\
+    -----END PUBLIC KEY-----";
     assert!(target_input.is_ok());
     assert!(target_input
         .as_ref()
         .unwrap()
-        .write_all("ctfe.pub content".as_bytes())
+        .write_all(new_target.as_bytes())
         .is_ok());
 }
 
