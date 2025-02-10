@@ -34,7 +34,6 @@ use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
-
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
     /// Allow repo download for expired metadata
@@ -536,8 +535,8 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let certificate_raw_bytes =
-                RhtasArgs::load_target_bytes(fulcio_target_path).context(error::FileReadSnafu {
+            let certificate_raw_bytes_vec = RhtasArgs::load_target_der_bytes(fulcio_target_path)
+                .context(error::FileReadSnafu {
                     path: fulcio_target_path.clone(),
                 })?;
 
@@ -559,17 +558,19 @@ impl RhtasArgs {
                 end = timestamp;
                 start = None;
             }
+
+            let mut certificates: Vec<X509Certificate> = Vec::new();
+            for item in certificate_raw_bytes_vec {
+                certificates.push(X509Certificate { raw_bytes: item });
+            }
+
             let new_ca = CertificateAuthority {
                 subject: Some(DistinguishedName {
                     organization: "sigstore.dev".to_string(),
                     common_name: "sigstore".to_string(),
                 }),
                 uri: self.fulcio_uri.clone().unwrap(),
-                cert_chain: Some(X509CertificateChain {
-                    certificates: vec![X509Certificate {
-                        raw_bytes: certificate_raw_bytes,
-                    }],
-                }),
+                cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
             };
 
@@ -612,18 +613,21 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let ctlog_raw_bytes =
-                RhtasArgs::load_target_bytes(ctlog_target_path).context(error::FileReadSnafu {
+            let ctlog_raw_bytes_vec = RhtasArgs::load_target_der_bytes(ctlog_target_path).context(
+                error::FileReadSnafu {
                     path: ctlog_target_path.clone(),
-                })?;
+                },
+            )?;
 
             let key_details = RhtasArgs::detect_public_key_details(ctlog_target_path);
             if key_details.is_err() {
                 return error::InvalidPublicKeySnafu {}.fail();
             }
 
+            let ctlog_raw_bytes = ctlog_raw_bytes_vec[0].clone();
+
             let mut hasher = Sha256::new();
-            hasher.update(&ctlog_raw_bytes);
+            hasher.update(ctlog_raw_bytes.clone());
             let hash_result = hasher.finalize();
             let key_id = hash_result.to_vec();
 
@@ -694,18 +698,21 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let rekor_raw_bytes =
-                RhtasArgs::load_target_bytes(rekor_target_path).context(error::FileReadSnafu {
+            let rekor_raw_bytes_vec = RhtasArgs::load_target_der_bytes(rekor_target_path).context(
+                error::FileReadSnafu {
                     path: rekor_target_path.clone(),
-                })?;
+                },
+            )?;
 
             let key_details = RhtasArgs::detect_public_key_details(rekor_target_path);
             if key_details.is_err() {
                 return error::InvalidPublicKeySnafu {}.fail();
             }
 
+            let rekor_raw_bytes = rekor_raw_bytes_vec[0].clone();
+
             let mut hasher = Sha256::new();
-            hasher.update(&rekor_raw_bytes);
+            hasher.update(rekor_raw_bytes.clone());
             let hash_result = hasher.finalize();
             let key_id = hash_result.to_vec();
 
@@ -776,8 +783,8 @@ impl RhtasArgs {
             }
 
             // TrustedRoot
-            let certificate_raw_bytes =
-                RhtasArgs::load_target_bytes(tsa_target_path).context(error::FileReadSnafu {
+            let certificate_raw_bytes_vec = RhtasArgs::load_target_der_bytes(tsa_target_path)
+                .context(error::FileReadSnafu {
                     path: tsa_target_path.clone(),
                 })?;
 
@@ -799,17 +806,19 @@ impl RhtasArgs {
                 end = timestamp;
                 start = None;
             }
+
+            let mut certificates: Vec<X509Certificate> = Vec::new();
+            for item in certificate_raw_bytes_vec {
+                certificates.push(X509Certificate { raw_bytes: item });
+            }
+
             let new_tsa = CertificateAuthority {
                 subject: Some(DistinguishedName {
                     organization: "sigstore.dev".to_string(),
                     common_name: "sigstore".to_string(),
                 }),
                 uri: self.tsa_uri.clone().unwrap(),
-                cert_chain: Some(X509CertificateChain {
-                    certificates: vec![X509Certificate {
-                        raw_bytes: certificate_raw_bytes,
-                    }],
-                }),
+                cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
             };
 
@@ -859,7 +868,7 @@ impl RhtasArgs {
                 let file_path = entry.path();
 
                 let identifier =
-                    RhtasArgs::load_target_bytes(&file_path).context(error::FileReadSnafu {
+                    RhtasArgs::load_target_der_bytes(&file_path).context(error::FileReadSnafu {
                         path: file_path.clone(),
                     })?;
 
@@ -870,7 +879,7 @@ impl RhtasArgs {
                         path: file_path.clone(),
                     })?;
                 // Remove target from TrustedRoot
-                match sigstore_trust_root.delete_target(&target_type, &identifier) {
+                match sigstore_trust_root.delete_target(&target_type, &identifier[0]) {
                     Ok(()) => {}
                     Err(e) => {
                         eprintln!("Failed to delete target: {e:?} from trusted_root");
@@ -1071,11 +1080,19 @@ impl RhtasArgs {
         ))
     }
 
-    fn load_target_bytes(target_path: &std::path::Path) -> io::Result<Vec<u8>> {
+    fn load_target_der_bytes(target_path: &Path) -> io::Result<Vec<Vec<u8>>> {
         let mut file = File::open(target_path)?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
-        Ok(buffer)
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+
+        let pems = pem::parse_many(buffer).map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("PEM parse error: {err}"),
+            )
+        })?;
+
+        Ok(pems.into_iter().map(pem::Pem::into_contents).collect())
     }
 
     fn get_latest_trusted_root(&self) -> PathBuf {
