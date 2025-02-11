@@ -30,3 +30,4 @@ LABEL io.openshift.tags="Tuffer Trusted Artifact Signer"
 LABEL summary="Provides the tuf-repo-init script for generating an initial trust root for RHTAS"
 LABEL com.redhat.component="tuffer"
 LABEL name="tuffer"
+#
