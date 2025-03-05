@@ -367,6 +367,7 @@ impl TargetsEditor {
     /// Removes a role from delegations
     /// If `recursive` is `false`, `role` is only removed if it is directly delegated by this role
     /// If `true` removes whichever role eventually delegates 'role'
+    #[allow(clippy::unnecessary_map_or)]
     pub fn remove_role(&mut self, role: &str, recursive: bool) -> Result<&mut Self> {
         let delegations = self
             .delegations
