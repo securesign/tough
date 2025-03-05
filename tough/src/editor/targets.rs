@@ -17,9 +17,9 @@ use crate::schema::{
 use crate::transport::{IntoVec, Transport};
 use crate::{encode_filename, Limits};
 use crate::{Repository, TargetName};
+use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use ring::rand::SystemRandom;
 use serde_json::Value;
 use snafu::{OptionExt, ResultExt};
 use std::borrow::Cow;
@@ -367,6 +367,7 @@ impl TargetsEditor {
     /// Removes a role from delegations
     /// If `recursive` is `false`, `role` is only removed if it is directly delegated by this role
     /// If `true` removes whichever role eventually delegates 'role'
+    #[allow(clippy::unnecessary_map_or)]
     pub fn remove_role(&mut self, role: &str, recursive: bool) -> Result<&mut Self> {
         let delegations = self
             .delegations

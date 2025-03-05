@@ -13,12 +13,11 @@ allow = [
     "MIT",
     "OpenSSL",
     "Unlicense",
+    "Unicode-3.0",
     "Zlib"
 ]
 
 exceptions = [
-    # Explicitly allows MPL-2 being pulled in through reqwest's rustls dependency chain (which uses webpki)
-    { name = "webpki-roots", allow = ["MPL-2.0"], version = "*" },
     { name = "unicode-ident", version = "1.0.2", allow = ["MIT", "Apache-2.0", "Unicode-DFS-2016"] },
 ]
 
@@ -74,6 +73,8 @@ skip = [
     { name = "regex-syntax", version = "=0.6" },
     # noxious, used for testing, is using an old version of tokio-util
     { name = "tokio-util", version = "=0.6.10" },
+    # aws-lc-rs uses an older version of untrusted
+    { name = "untrusted", version = "=0.7.1" },
     # tokio and mio are bringing in older versions of windows libraries while other
     # libraries, are bringing in newer versions
     { name = "windows-sys", version = "=0.48" },
@@ -88,6 +89,10 @@ skip = [
 ]
 
 skip-tree = [
+    # noxious-client is using an older version of reqwest
+    { name = "reqwest", version = "=0.11" },
+    # aws-smithy-runtime-experimental is using several newer dependencies
+    { name = "aws-smithy-experimental", version = "=0.1" },
 ]
 
 [sources]
