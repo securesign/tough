@@ -10,7 +10,6 @@ use chrono::{DateTime, Timelike, Utc};
 use clap::Parser;
 use indexmap::indexmap;
 use log::warn;
-use ring::rand::SystemRandom;
 use snafu::{ensure, OptionExt, ResultExt};
 use std::collections::HashMap;
 use std::io::Write;

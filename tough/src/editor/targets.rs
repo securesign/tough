@@ -20,7 +20,6 @@ use crate::{Repository, TargetName};
 use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use ring::rand::SystemRandom;
 use serde_json::Value;
 use snafu::{OptionExt, ResultExt};
 use std::borrow::Cow;

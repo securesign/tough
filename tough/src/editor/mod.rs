@@ -27,8 +27,6 @@ use aws_lc_rs::digest::{SHA256, SHA256_OUTPUT_LEN};
 use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use ring::digest::{SHA256, SHA256_OUTPUT_LEN};
-use ring::rand::SystemRandom;
 use serde_json::Value;
 use snafu::{ensure, OptionExt, ResultExt};
 use std::borrow::Cow;
