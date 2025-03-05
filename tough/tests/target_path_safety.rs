@@ -1,8 +1,9 @@
 mod test_utils;
 
+use aws_lc_rs::rand::SystemRandom;
 use chrono::{DateTime, TimeZone, Utc};
 use indexmap::indexmap;
-use ring::rand::SystemRandom;
+use maplit::hashmap;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::path::Path;
