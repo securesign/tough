@@ -30,6 +30,10 @@ spec:
     value: Dockerfile.tuffer
   - name: build-source-image
     value: "true"
+  - name: prefetch-input
+    value: '{"type": "cargo", "path": "."}'
+  - name: hermetic
+    value: true
   pipelineRef:
     resolver: git
     params:
