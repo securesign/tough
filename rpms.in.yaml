@@ -1,0 +1,4 @@
+packages: [perl, gcc, openssl, openssl-devel, cmake, gcc-c++, git, curl-minimal, unzip, cyrus-sasl-devel]
+contentOrigin:
+  repofiles: ["./ubi.repo"]
+arches: [x86_64]

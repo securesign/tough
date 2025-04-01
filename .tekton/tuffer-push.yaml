@@ -30,7 +30,9 @@ spec:
   - name: prefetch-input
     value: '{"type": "cargo", "path": "."}'
   - name: hermetic
-    value: true
+    value: "true"
+  - name: dev-package-managers 
+    value: "true"
   pipelineRef:
     resolver: git
     params:
