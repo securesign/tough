@@ -11,6 +11,13 @@ arches:
     name: annobin
     evr: 12.65-1.el9
     sourcerpm: annobin-12.65-1.el9.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cargo-1.79.0-3.el9_5.x86_64.rpm
+    repoid: ubi-9-appstream-rpms
+    size: 7677114
+    checksum: sha256:646e36cade15b22938c0721232aa100a228969430c593c10adba9a80e3fe7cff
+    name: cargo
+    evr: 1.79.0-3.el9_5
+    sourcerpm: rust-1.79.0-3.el9_5.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-3.26.5-2.el9.x86_64.rpm
     repoid: ubi-9-appstream-rpms
     size: 9159462
@@ -1880,6 +1887,13 @@ arches:
     name: redhat-rpm-config
     evr: 208-1.el9
     sourcerpm: redhat-rpm-config-208-1.el9.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/r/rust-1.79.0-3.el9_5.x86_64.rpm
+    repoid: ubi-9-appstream-rpms
+    size: 26522569
+    checksum: sha256:fae006c4035d70e650fa1249d06aa9d7b0bb0f6bb2f173be852ca48eccf86f50
+    name: rust
+    evr: 1.79.0-3.el9_5
+    sourcerpm: rust-1.79.0-3.el9_5.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/r/rust-srpm-macros-17-4.el9.noarch.rpm
     repoid: ubi-9-appstream-rpms
     size: 11243
@@ -1887,6 +1901,13 @@ arches:
     name: rust-srpm-macros
     evr: 17-4.el9
     sourcerpm: rust-srpm-macros-17-4.el9.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/r/rust-std-static-1.79.0-3.el9_5.x86_64.rpm
+    repoid: ubi-9-appstream-rpms
+    size: 35671907
+    checksum: sha256:e6b3ea8b1c965e78cc883ed7a8311235366baf40e746e99526cf9c093c6f4865
+    name: rust-std-static
+    evr: 1.79.0-3.el9_5
+    sourcerpm: rust-1.79.0-3.el9_5.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/s/sombok-2.4.0-16.el9.x86_64.rpm
     repoid: ubi-9-appstream-rpms
     size: 52190
