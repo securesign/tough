@@ -4,10 +4,6 @@ USER root
 
 ARG RUST_VERSION="1.79.0"
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
-
-ENV PATH "$PATH:/root/.cargo/bin"
-
 RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
 RUN cd /tmp/tuftool && cargo build --release
