@@ -11,6 +11,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --defa
 ENV PATH "$PATH:/root/.cargo/bin"
 
 RUN mkdir /tmp/tuftool
+
 COPY . /tmp/tuftool
 RUN cd /tmp/tuftool && cargo build --release
 
