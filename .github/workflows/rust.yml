@@ -42,4 +42,8 @@ jobs:
       - run: rustup default stable
       - run: rustup component add rustfmt
       - run: rustup component add clippy
+      - name: Check CMake version
+        run: cmake --version
+      - name: Install latest CMake
+        run: sudo apt-get update && sudo apt-get install -y cmake
       - run: make ${{ matrix.make_target }}
