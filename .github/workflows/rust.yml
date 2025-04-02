@@ -43,7 +43,9 @@ jobs:
       - run: rustup component add rustfmt
       - run: rustup component add clippy
       - name: Check CMake version
+        if: runner.os == 'Linux'
         run: cmake --version
       - name: Install latest CMake
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y cmake
       - run: make ${{ matrix.make_target }}
