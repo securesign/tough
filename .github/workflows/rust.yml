@@ -42,4 +42,19 @@ jobs:
       - run: rustup default stable
       - run: rustup component add rustfmt
       - run: rustup component add clippy
+      - name: Install CMake 3.x (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get remove --purge --auto-remove cmake -y
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -qO cmake.sh https://github.com/Kitware/CMake/releases/download/v3.27.6/cmake-3.27.6-linux-x86_64.sh
+          sudo mkdir -p /opt/cmake
+          sudo sh cmake.sh --prefix=/opt/cmake --skip-license
+          echo "/opt/cmake/bin" >> $GITHUB_PATH
+      - name: Install CMake 3.x (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake --version=3.27.6 -y --installargs 'ADD_CMAKE_TO_PATH=System' --allow-downgrade
+        shell: powershell
       - run: make ${{ matrix.make_target }}
