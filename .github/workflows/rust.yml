@@ -52,4 +52,9 @@ jobs:
           sudo mkdir -p /opt/cmake
           sudo sh cmake.sh --prefix=/opt/cmake --skip-license
           echo "/opt/cmake/bin" >> $GITHUB_PATH
+      - name: Install CMake 3.x (Windows only)
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake --version=3.27.6 -y --installargs 'ADD_CMAKE_TO_PATH=System'
+        shell: powershell
       - run: make ${{ matrix.make_target }}
