@@ -34,6 +34,7 @@ use url::Url;
 ///
 /// See [`HttpTransport`] for proxy support and other behavior details.
 ///
+
 #[derive(Clone, Copy, Debug)]
 pub struct HttpTransportBuilder {
     timeout: Duration,
