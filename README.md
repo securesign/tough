@@ -13,5 +13,4 @@ See [tough - Rust](https://docs.rs/tough/) for the latest `tough` library docume
 See `tuftool`'s [README](tuftool/README.md) for more on how to use `tuftool`.
 
 ## License
-
 tough is licensed under the [Apache License, Version 2.0](LICENSE-APACHE) or the [MIT license](LICENSE-MIT), at your option.
