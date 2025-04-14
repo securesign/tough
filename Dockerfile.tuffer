@@ -2,13 +2,7 @@ FROM registry.access.redhat.com/ubi9/ubi:latest as builder
 
 USER root
 
-ARG RUST_VERSION="1.79.0"
-
-RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs/ | sh -s -- --default-toolchain=${RUST_VERSION} -y
-
-ENV PATH "$PATH:/root/.cargo/bin"
+RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo
 
 RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
