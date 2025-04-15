@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/ubi:latest as builder
 
 USER root
 
-RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel
+RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel ca-certificates
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain 1.81.0 && \
