@@ -42,7 +42,7 @@ sigstore_protobuf_specs = { version = "0.3.2", optional = true }
 snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
 sha2 = "0.9"
 pem = "3.0.4"
-prost-types = "0.12.6"
+prost-types = "0.13.0"
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 tough = { version = "0.19", path = "../tough", features = ["http"] }
