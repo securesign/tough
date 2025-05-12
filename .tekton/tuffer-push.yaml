@@ -6,8 +6,12 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "develop" &&
-      ( "Dockerfile.tuffer".pathChanged() || ".tekton/tuffer-push.yaml".pathChanged() || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged() || "tough/***".pathChanged() || "tuftool/***".pathChanged() || "Makefile".pathChanged() || "rhtas/***".pathChanged() || "trigger-konflux-builds.txt".pathChanged() || "rpms.lock.yaml".pathChanged() )
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
+      == "develop" && ( "Dockerfile.tuffer".pathChanged() || ".tekton/tuffer-push.yaml".pathChanged()
+      || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged()
+      || "tough/***".pathChanged() || "tuftool/***".pathChanged() || "Makefile".pathChanged()
+      || "rhtas/***".pathChanged() || "trigger-konflux-builds.txt".pathChanged() ||
+      "rpms.lock.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tough
@@ -31,18 +35,19 @@ spec:
     value: '[{"type": "cargo", "path": "."}, {"type": "rpm", "path": "."}]'
   - name: hermetic
     value: "true"
-  - name: dev-package-managers 
+  - name: dev-package-managers
     value: "true"
   pipelineRef:
-    resolver: git
     params:
-      - name: url
-        value: 'https://github.com/securesign/pipelines.git'
-      - name: revision
-        value: 'main'
-      - name: pathInRepo
-        value: 'pipelines/docker-build-oci-ta.yaml'
-  taskRunTemplate: {}
+    - name: url
+      value: https://github.com/securesign/pipelines.git
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipelines/docker-build-oci-ta.yaml
+    resolver: git
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-tuffer
   workspaces:
   - name: git-auth
     secret:
