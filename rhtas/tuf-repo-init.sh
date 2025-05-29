@@ -101,7 +101,7 @@ fi
 
 if [ -e "${TUF_REPO_PATH}/root.json" ]; then
   echo "Repo seems to already be initialized (${TUF_REPO_PATH}/root.json exists)"
-  exit 1
+  exit 2
 fi
 
 export WORKDIR=""
