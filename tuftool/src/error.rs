@@ -441,6 +441,21 @@ pub(crate) enum Error {
         source: tokio::task::JoinError,
         backtrace: Backtrace,
     },
+
+    #[snafu(display("More passwords provided than key sources"))]
+    MorePasswords { backtrace: Backtrace },
+
+    #[snafu(display("More new passwords provided than new key sources"))]
+    MoreNewPasswords { backtrace: Backtrace },
+
+    #[snafu(display("Key at {} is encrypted but no password provided", path.display()))]
+    EncryptedKeyNoPassword { path: PathBuf },
+
+    #[snafu(display("Invalid password for encrypted key at {}: {}", path.display(), source))]
+    InvalidPassword {
+        source: openssl::error::ErrorStack,
+        path: PathBuf,
+    },
 }
 
 // Extracts the status code from a reqwest::Error and converts it to a string to be displayed

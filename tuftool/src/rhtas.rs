@@ -167,6 +167,10 @@ pub(crate) struct RhtasArgs {
     /// Version of timestamp.json
     #[arg(long)]
     timestamp_version: Option<NonZeroU64>,
+
+    /// [Optional] passwords/passphrases of the Key files to sign with
+    #[arg(short, long = "password")]
+    passwords: Option<Vec<String>>,
 }
 
 fn expired_repo_warning<P: AsRef<Path>>(path: P) {
@@ -210,8 +214,19 @@ impl RhtasArgs {
     #[allow(clippy::too_many_lines)]
     async fn update_metadata(&self, mut editor: RepositoryEditor) -> Result<()> {
         let mut keys = Vec::new();
-        for source in &self.keys {
-            let key_source = parse_key_source(source)?;
+        let default_password = String::new();
+        let passwords = match &self.passwords {
+            Some(pws) => pws,
+            None => &vec![],
+        };
+        if passwords.len() > self.keys.len() {
+            error::MorePasswordsSnafu.fail()?;
+        }
+        for (i, source) in self.keys.iter().enumerate() {
+            let password = passwords.get(i).unwrap_or(&default_password);
+            let key_source = parse_key_source(source, Some(password.to_string()))?;
+            // Check if key is encrypted and validate password
+            check_key_encryption(source.to_string(), password)?;
             keys.push(key_source);
         }
 
@@ -232,7 +247,7 @@ impl RhtasArgs {
 
         let mut sigstore_trust_root = RhtasArgs::load_trusted_root(&trusted_root_path)?;
 
-        // If the "remove-<target>-target" argument was passed, remove the targets from the repository.
+        // If the "delete-<target>-target" argument was passed, remove the targets from the repository.
         self.delete_targets(&mut editor, &mut sigstore_trust_root)
             .await?;
 
@@ -1129,4 +1144,30 @@ impl RhtasArgs {
         // return the default "trusted_root.json" path
         targets_dir.join("trusted_root.json")
     }
+}
+
+pub fn read_key_file(key: String) -> std::io::Result<String> {
+    std::fs::read_to_string(key)
+}
+
+// Function to check if key is encrypted and validate password
+fn check_key_encryption(path: String, password: &str) -> Result<()> {
+    let path_buf = PathBuf::from(&path);
+
+    let key_content = read_key_file(path).context(error::FileReadSnafu {
+        path: path_buf.clone(),
+    })?;
+
+    let is_encrypted = key_content.contains("ENCRYPTED");
+
+    if is_encrypted {
+        if is_encrypted && password.is_empty() {
+            return Err(error::EncryptedKeyNoPasswordSnafu { path: path_buf }.build());
+        }
+        // Try parsing the encrypted key with the password
+        PKey::private_key_from_pem_passphrase(key_content.as_bytes(), password.as_bytes())
+            .context(error::InvalidPasswordSnafu { path: path_buf })?;
+    }
+
+    Ok(())
 }

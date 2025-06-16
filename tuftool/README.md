@@ -54,14 +54,17 @@ tuftool root set-threshold "${ROOT}" timestamp 1
 
 # create an RSA key and store it as a file. this requires openssl on your system
 # this command both creates the key and adds it to root.json for the root role
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool root gen-rsa-key "${ROOT}" "${WRK}/keys/root.pem" --role root
 
 # for this example we will re-use the same key for the other standard roles
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool root add-key "${ROOT}" -k "${WRK}/keys/root.pem" --role snapshot
 tuftool root add-key "${ROOT}" -k "${WRK}/keys/root.pem" --role targets
 tuftool root add-key "${ROOT}" -k "${WRK}/keys/root.pem" --role timestamp
 
 # sign root.json
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool root sign "${ROOT}" -k "${WRK}/keys/root.pem"
 ```
 
@@ -80,6 +83,7 @@ echo "1" > "${WRK}/input/1.txt"
 echo "2" > "${WRK}/input/2.txt"
 
 # create a tuf repo!
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool create \
   --root "${ROOT}" \
   --key "${WRK}/keys/root.pem" \
@@ -105,6 +109,7 @@ echo "1.1" > "${WRK}/input/1.txt"
 # update tuf repo! Version will be automatically calculated, and expiry flags are optional. 
 # If no expires flag is passed, existing values will be passed on to the new updated version.
 # A user may forcefully change the versions by supplying the --force-version flag alongside the <metadata>-version flag.
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool update \
    --root "${ROOT}" \
    --key "${WRK}/keys/root.pem" \
@@ -118,6 +123,7 @@ tuftool update \
 #[Optional] Set an RHTAS target (fulcio, ctlog, rekor, tsa)!
 touch "${WRK}/input/ctfe.pub" 
 
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool rhtas \
    --root "${ROOT}" \
    --key "${WRK}/keys/root.pem" \
@@ -127,6 +133,7 @@ tuftool rhtas \
    --metadata-url file:///$WRK/tuf-repo/
 
 # delete a target: --delete-<target>-target
+# optionally, you can specify a password for the key with --password "${PASSWORD}"
 tuftool rhtas \
    --root "${ROOT}" \
    --key "${WRK}/keys/root.pem" \
