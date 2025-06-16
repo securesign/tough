@@ -22,6 +22,8 @@ use tough::schema::decoded::{Decoded, Hex};
 use tough::schema::{key::Key, KeyHolder, RoleKeys, RoleType, Root, Signed};
 use tough::sign::{parse_keypair, Sign};
 
+static EMPTY_PASSWORDS: Vec<String> = Vec::new();
+
 #[derive(Debug, Parser)]
 pub(crate) enum Command {
     /// Add one or more keys (public or private) to a role
@@ -265,7 +267,6 @@ impl Command {
     ) -> Result<()> {
         let mut keys = Vec::new();
         let default_password = String::new();
-        static EMPTY_PASSWORDS: Vec<String> = Vec::new();
         let passwords = match password {
             Some(pws) => pws,
             None => &EMPTY_PASSWORDS,
