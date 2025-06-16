@@ -176,7 +176,8 @@ pub fn decrypt_key(
     let pem_str = std::str::from_utf8(encrypted_key)?;
     let pem = pem::parse(pem_str)?;
     let encrypted_private_key_document = pkcs8::EncryptedPrivateKeyInfo::from_der(pem.contents())?;
-    let decrypted_private_key_document = encrypted_private_key_document.decrypt(password.as_bytes())?;
+    let decrypted_private_key_document =
+        encrypted_private_key_document.decrypt(password.as_bytes())?;
     let decrypted_key_bytes = decrypted_private_key_document.as_bytes();
     let pem_output = pem::Pem::new("PRIVATE KEY".to_string(), decrypted_key_bytes.to_vec());
     let pem_encoded = pem::encode(&pem_output);
