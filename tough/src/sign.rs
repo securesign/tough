@@ -189,10 +189,10 @@ pub fn decrypt_key(
 /// Accepted Keys: ED25519 pkcs8, Ecdsa pkcs8, RSA
 pub fn parse_keypair(key: &[u8], password: Option<&str>) -> Result<impl Sign> {
     let decrypted_key = if let Some(pw) = password {
-        if !pw.is_empty() {
-            decrypt_key(key, pw).map_err(|_| error::KeyDecryptionSnafu.build())?
-        } else {
+        if pw.is_empty() {
             key.to_vec()
+        } else {
+            decrypt_key(key, pw).map_err(|_| error::KeyDecryptionSnafu.build())?
         }
     } else {
         key.to_vec()
