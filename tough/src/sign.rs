@@ -11,7 +11,6 @@ use crate::sign::SignKeyPair::RSA;
 use async_trait::async_trait;
 use aws_lc_rs::rand::SecureRandom;
 use aws_lc_rs::signature::{EcdsaKeyPair, Ed25519KeyPair, KeyPair, RsaKeyPair};
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use pkcs8::der::Decode;
 use snafu::ResultExt;
 use std::collections::HashMap;
@@ -177,14 +176,11 @@ pub fn decrypt_key(
     let pem_str = std::str::from_utf8(encrypted_key)?;
     let pem = pem::parse(pem_str)?;
     let encrypted_private_key_document = pkcs8::EncryptedPrivateKeyInfo::from_der(pem.contents())?;
-    let decrypted_private_key_document =
-        encrypted_private_key_document.decrypt(password.as_bytes())?;
-    let decrypted_key_bytes: Vec<u8> = decrypted_private_key_document.as_bytes().to_vec();
-    let decrypted_key_base64 = STANDARD.encode(decrypted_key_bytes);
-    let pem_key =
-        format!("-----BEGIN PRIVATE KEY-----\n{decrypted_key_base64}\n-----END PRIVATE KEY-----");
-    let pem_key_bytes = pem_key.as_bytes().to_vec();
-    Ok(pem_key_bytes)
+    let decrypted_private_key_document = encrypted_private_key_document.decrypt(password.as_bytes())?;
+    let decrypted_key_bytes = decrypted_private_key_document.as_bytes();
+    let pem_output = pem::Pem::new("PRIVATE KEY".to_string(), decrypted_key_bytes.to_vec());
+    let pem_encoded = pem::encode(&pem_output);
+    Ok(pem_encoded.as_bytes().to_vec())
 }
 
 /// Parses a supplied keypair and if it is recognized, returns an object that
@@ -192,7 +188,7 @@ pub fn decrypt_key(
 /// Accepted Keys: ED25519 pkcs8, Ecdsa pkcs8, RSA
 pub fn parse_keypair(key: &[u8], password: Option<&str>) -> Result<impl Sign> {
     let decrypted_key = if let Some(pw) = password {
-        decrypt_key(key, pw).unwrap_or_else(|_| key.to_vec())
+        decrypt_key(key, pw).map_err(|_| error::KeyDecryptionSnafu.build())?
     } else {
         key.to_vec()
     };

@@ -265,9 +265,10 @@ impl Command {
     ) -> Result<()> {
         let mut keys = Vec::new();
         let default_password = String::new();
+        static EMPTY_PASSWORDS: Vec<String> = Vec::new();
         let passwords = match password {
             Some(pws) => pws,
-            None => &vec![],
+            None => &EMPTY_PASSWORDS,
         };
         if passwords.len() > key_source.len() {
             error::MorePasswordsSnafu.fail()?;

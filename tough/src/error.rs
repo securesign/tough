@@ -645,4 +645,7 @@ pub enum Error {
 
     #[snafu(display("The targets editor was not cleared"))]
     TargetsEditorSome,
+
+    #[snafu(display("Decryption failed"))]
+    KeyDecryption,
 }
