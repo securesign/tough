@@ -167,6 +167,10 @@ pub(crate) struct RhtasArgs {
     /// Version of timestamp.json
     #[arg(long)]
     timestamp_version: Option<NonZeroU64>,
+
+    /// Default checksum algorithm > sha256
+    #[arg(long)]
+    checksum_algo: Option<String>,
 }
 
 fn expired_repo_warning<P: AsRef<Path>>(path: P) {
@@ -619,7 +623,10 @@ impl RhtasArgs {
                 },
             )?;
 
-            let key_details = RhtasArgs::detect_public_key_details(ctlog_target_path);
+            let key_details = RhtasArgs::detect_public_key_details(
+                ctlog_target_path,
+                self.checksum_algo.as_deref(),
+            );
             if key_details.is_err() {
                 return error::InvalidPublicKeySnafu {}.fail();
             }
@@ -704,7 +711,10 @@ impl RhtasArgs {
                 },
             )?;
 
-            let key_details = RhtasArgs::detect_public_key_details(rekor_target_path);
+            let key_details = RhtasArgs::detect_public_key_details(
+                rekor_target_path,
+                self.checksum_algo.as_deref(),
+            );
             if key_details.is_err() {
                 return error::InvalidPublicKeySnafu {}.fail();
             }
@@ -1033,28 +1043,73 @@ impl RhtasArgs {
         Ok(())
     }
 
-    fn detect_public_key_details(key_path: &Path) -> io::Result<i32> {
+    pub fn detect_public_key_details(
+        key_path: &Path,
+        checksum_algo: Option<&str>,
+    ) -> io::Result<i32> {
+        let raw_algo_string = checksum_algo.unwrap_or("sha256");
+        let algo_to_use = raw_algo_string.to_lowercase();
         let mut file = File::open(key_path)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
 
-        // EC key
         if let Ok(ec_key) = EcKey::public_key_from_pem(buffer.as_bytes()) {
             let group = ec_key.group();
             let curve = group.curve_name();
             let key_type_id = match curve {
-                Some(Nid::X9_62_PRIME256V1) => Ok(5),
-                Some(Nid::SECP384R1) => Ok(12),
-                Some(Nid::SECP521R1) => Ok(13),
-                _ => Err(io::Error::new(io::ErrorKind::InvalidData, "Unknown curve")),
+                Some(Nid::X9_62_PRIME256V1) => {
+                    if algo_to_use == "sha256" {
+                        Ok(5)
+                    } else {
+                        Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!(
+                                "EC P-256 curve requires 'sha256' checksum,
+                                but '{algo_to_use}' was provided"
+                            ),
+                        ))
+                    }
+                }
+                Some(Nid::SECP384R1) => {
+                    if algo_to_use == "sha384" {
+                        Ok(12)
+                    } else if algo_to_use == "sha256" {
+                        Ok(19)
+                    } else {
+                        Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!(
+                                "EC P-384 curve requires 'sha384' or 'sha256' checksum,
+                                but '{algo_to_use}' was provided"
+                            ),
+                        ))
+                    }
+                }
+                Some(Nid::SECP521R1) => {
+                    if algo_to_use == "sha512" {
+                        Ok(13)
+                    } else if algo_to_use == "sha256" {
+                        Ok(20)
+                    } else {
+                        Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!(
+                                "EC P-521 curve requires 'sha512' or 'sha256' checksum,
+                                but '{algo_to_use}' was provided"
+                            ),
+                        ))
+                    }
+                }
+                _ => Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "Unknown or unsupported EC curve",
+                )),
             };
             return key_type_id;
         }
-        // RSA key
         if let Ok(rsa_key) = Rsa::public_key_from_pem(buffer.as_bytes())
             .or_else(|_| Rsa::public_key_from_pem_pkcs1(buffer.as_bytes()))
         {
-            // key_size: bits
             let key_size = rsa_key.size() * 8;
             let key_type_id = match key_size {
                 2048 => Ok(9),
@@ -1068,7 +1123,6 @@ impl RhtasArgs {
             return key_type_id;
         }
 
-        // ED25519 key
         if let Ok(pkey) = PKey::public_key_from_pem(buffer.as_bytes()) {
             if pkey.id() == openssl::pkey::Id::ED25519 {
                 return Ok(7);
@@ -1076,7 +1130,7 @@ impl RhtasArgs {
         }
         Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "Invalid public key format",
+            "Invalid public key format or unsupported key type",
         ))
     }
 

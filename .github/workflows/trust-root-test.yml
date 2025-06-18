@@ -41,3 +41,4 @@ jobs:
             /tmp/testrepo
       - run: curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && mv cosign-linux-amd64 ${HOME}/.local/bin/cosign && sudo chmod +x ${HOME}/.local/bin/cosign
       - run: cosign -d initialize --mirror=file:///tmp/testrepo --root=/tmp/testrepo/root.json
+      - run: find /tmp/testrepo -type f -exec cat {} +
