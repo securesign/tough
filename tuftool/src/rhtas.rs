@@ -5,6 +5,8 @@ use crate::build_targets;
 use crate::common::UNUSED_URL;
 use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
+#[cfg(feature = "sigstore-trust-root")]
+use crate::sigstore_trust::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
 use crate::source::parse_key_source;
 use crate::TargetName;
 use chrono::{DateTime, Utc};
@@ -17,7 +19,6 @@ use prost_types::Timestamp;
 use serde_json::from_reader;
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use sigstore::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::{
         DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
@@ -179,6 +180,8 @@ WARNING: `--allow-expired-repo` was passed; this is unsafe and will not establis
               path.as_ref().display());
 }
 
+#[allow(deprecated)]
+#[allow(clippy::clone_on_copy)]
 impl RhtasArgs {
     pub(crate) async fn run(&mut self) -> Result<()> {
         self.validate_and_set_defaults()?;
@@ -572,6 +575,7 @@ impl RhtasArgs {
                 uri: self.fulcio_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
+                operator: String::new(),
             };
 
             match trusted_root
@@ -657,8 +661,9 @@ impl RhtasArgs {
                     key_details: key_details.unwrap(),
                     valid_for: Some(TimeRange { start, end }),
                 }),
-                log_id: Some(LogId { key_id }),
-                checkpoint_key_id: None,
+                checkpoint_key_id: Some(LogId { key_id }),
+                log_id: None,
+                operator: String::new(),
             };
 
             match trusted_root.set_target(TargetType::Log(new_ctlog), Target::Ctlog) {
@@ -742,8 +747,9 @@ impl RhtasArgs {
                     key_details: key_details.unwrap(),
                     valid_for: Some(TimeRange { start, end }),
                 }),
-                log_id: Some(LogId { key_id }),
-                checkpoint_key_id: None,
+                checkpoint_key_id: Some(LogId { key_id }),
+                log_id: None,
+                operator: String::new(),
             };
 
             match trusted_root.set_target(TargetType::Log(new_tlog), Target::Tlog) {
@@ -820,6 +826,7 @@ impl RhtasArgs {
                 uri: self.tsa_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
+                operator: String::new(),
             };
 
             match trusted_root
