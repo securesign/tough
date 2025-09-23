@@ -21,4 +21,4 @@ LABEL io.openshift.tags="Tuftool Trusted Artifact Signer"
 LABEL summary="Provides the Tuftool binary for generating and signing TUF repositories"
 LABEL com.redhat.component="tuftool"
 LABEL name="rhtas/tuftool-rhel9"
-LABEL cpe="cpe:/a:redhat:trusted_artifact_signer:1.2::el9"
+
