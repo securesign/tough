@@ -11,7 +11,7 @@ metadata:
       || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged()
       || "tough/***".pathChanged() || "tuftool/***".pathChanged() || "Makefile".pathChanged()
       || "rhtas/***".pathChanged() || "trigger-konflux-builds.txt".pathChanged() ||
-      "rpms.lock.yaml".pathChanged() )
+      "rpms.lock.yaml".pathChanged() || "ubi.repo".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tough
