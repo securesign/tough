@@ -1,2 +1,2 @@
-# .qodo-merge.toml
-enable_rag = true
+[rag_arguments]
+enable_rag=true
