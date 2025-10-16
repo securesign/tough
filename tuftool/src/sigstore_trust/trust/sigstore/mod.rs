@@ -348,15 +348,16 @@ impl SigstoreTrustRoot {
             Target::Ctlog => {
                 if let TargetType::Log(mut ctlog) = new_target {
                     let exists = self.trusted_root.ctlogs.iter().any(|existing_ctlog| {
-                        existing_ctlog.checkpoint_key_id == ctlog.checkpoint_key_id
+                        existing_ctlog.log_id == ctlog.log_id
                             || existing_ctlog.public_key == ctlog.public_key
                     });
 
                     if exists {
-                        if let Some(existing_ctlog) =
-                            self.trusted_root.ctlogs.iter_mut().find(|existing_ctlog| {
-                                existing_ctlog.checkpoint_key_id == ctlog.checkpoint_key_id
-                            })
+                        if let Some(existing_ctlog) = self
+                            .trusted_root
+                            .ctlogs
+                            .iter_mut()
+                            .find(|existing_ctlog| existing_ctlog.log_id == ctlog.log_id)
                         {
                             // If valid_for.start is not set; User wants to expire the target
                             if let Some(valid_for) = &mut ctlog
@@ -400,15 +401,16 @@ impl SigstoreTrustRoot {
             Target::Tlog => {
                 if let TargetType::Log(mut tlog) = new_target {
                     let exists = self.trusted_root.tlogs.iter().any(|existing_tlog| {
-                        existing_tlog.checkpoint_key_id == tlog.checkpoint_key_id
+                        existing_tlog.log_id == tlog.log_id
                             || existing_tlog.public_key == tlog.public_key
                     });
 
                     if exists {
-                        if let Some(existing_tlog) =
-                            self.trusted_root.tlogs.iter_mut().find(|existing_tlog| {
-                                existing_tlog.checkpoint_key_id == tlog.checkpoint_key_id
-                            })
+                        if let Some(existing_tlog) = self
+                            .trusted_root
+                            .tlogs
+                            .iter_mut()
+                            .find(|existing_tlog| existing_tlog.log_id == tlog.log_id)
                         {
                             // If valid_for.start is not set; User wants to expire the target
                             if let Some(valid_for) = &mut tlog
@@ -587,11 +589,11 @@ impl crate::sigstore_trust::trust::TrustRoot for SigstoreTrustRoot {
     fn rekor_keys(&self) -> Result<Vec<&[u8]>> {
         let keys: Vec<_> = Self::tlog_keys(&self.trusted_root.tlogs).collect();
 
-        if keys.len() == 1 {
+        if !keys.is_empty() {
             Ok(keys)
         } else {
             Err(SigstoreError::TufMetadataError(
-                "Did not find exactly 1 active Rekor key".into(),
+                "No active Rekor keys".into(),
             ))
         }
     }
@@ -871,8 +873,8 @@ mod tests {
                     end: None,
                 }),
             }),
-            log_id: None,
-            checkpoint_key_id: Some(LogId {
+            checkpoint_key_id: None,
+            log_id: Some(LogId {
                 key_id: String::from("CGCS8RhS/2hG0drJ4ScRWcYrBY9wzjSbea8IgY2b3I=").as_bytes().to_vec(),
             }),
             operator: "".to_string()
@@ -1009,8 +1011,8 @@ mod tests {
                     end: None,
                 }),
             }),
-            log_id: None,
-            checkpoint_key_id: Some(LogId {
+            checkpoint_key_id: None,
+            log_id: Some(LogId {
                 key_id: String::from("CGCS8RhS/2hG0drJ4ScRWcYrBY9wzjSbea8IgY2b3I=")
                     .as_bytes()
                     .to_vec(),
