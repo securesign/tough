@@ -589,12 +589,12 @@ impl crate::sigstore_trust::trust::TrustRoot for SigstoreTrustRoot {
     fn rekor_keys(&self) -> Result<Vec<&[u8]>> {
         let keys: Vec<_> = Self::tlog_keys(&self.trusted_root.tlogs).collect();
 
-        if !keys.is_empty() {
-            Ok(keys)
-        } else {
+        if keys.is_empty() {
             Err(SigstoreError::TufMetadataError(
                 "No active Rekor keys".into(),
             ))
+        } else {
+            Ok(keys)
         }
     }
 
