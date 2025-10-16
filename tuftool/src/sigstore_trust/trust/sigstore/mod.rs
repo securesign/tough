@@ -66,6 +66,7 @@ pub enum Target {
 #[allow(clippy::unnecessary_map_or)]
 #[allow(clippy::unnecessary_wraps)]
 #[allow(clippy::clone_on_copy)]
+#[allow(deprecated)]
 impl SigstoreTrustRoot {
     // Needed to construct SigstoreTrustRoot from trusted_root.json
     pub fn from_trusted_root(trusted_root: TrustedRoot) -> Self {
