@@ -11,11 +11,12 @@ RUN cd /tmp/tuftool && cargo build --release
 FROM registry.access.redhat.com/ubi9/ubi:latest as deploy
 
 COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
+COPY licenses/LICENSE-APACHE /licenses/license.txt
 
 COPY rhtas/tuf-repo-init.sh /usr/bin/
 
 ENTRYPOINT ["/usr/bin/tuf-repo-init.sh"]
-USER 1001
+USER 65532:65532
 
 LABEL description ="Tuffer is a utility application used for generating an initial trust root for RHTAS"
 LABEL io.k8s.description="Tuffer is a utility application used for generating an initial trust root for RHTAS"
