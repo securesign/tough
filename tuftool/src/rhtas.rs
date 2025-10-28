@@ -6,7 +6,7 @@ use crate::common::UNUSED_URL;
 use crate::datetime::parse_datetime;
 use crate::error::{self, Result};
 #[cfg(feature = "sigstore-trust-root")]
-use crate::sigstore_trust::trust::sigstore::{SigstoreTrustRoot, Target, TargetType};
+use crate::sigstore_trust::trust::sigstore::{SigstoreTrustBundle, Target, TargetType};
 use crate::source::parse_key_source;
 use crate::TargetName;
 use chrono::{DateTime, Utc};
@@ -16,21 +16,25 @@ use openssl::nid::Nid;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use prost_types::Timestamp;
-use serde_json::from_reader;
 use serde_json::json;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::{
         DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
     },
-    trustroot::v1::{CertificateAuthority, TransparencyLogInstance, TrustedRoot},
+    trustroot::v1::{
+        CertificateAuthority, ServiceConfiguration, SigningConfig, TransparencyLogInstance,
+        TrustedRoot,
+    },
 };
 use snafu::{OptionExt, ResultExt};
 use std::fs::{self, File};
+use std::io::BufReader;
 use std::io::{self, Read};
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tough::editor::signed::{PathExists, SignedRepository};
 use tough::editor::RepositoryEditor;
 use tough::{ExpirationEnforcement, RepositoryLoader};
@@ -216,84 +220,106 @@ impl RhtasArgs {
 
     #[allow(clippy::too_many_lines)]
     async fn update_metadata(&self, mut editor: RepositoryEditor) -> Result<()> {
-        let mut keys = Vec::new();
-        for source in &self.keys {
-            let key_source = parse_key_source(source)?;
-            keys.push(key_source);
-        }
-
-        self.update_repository_metadata(&mut editor)?;
-
         let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
-        // Create temporary targets/trusted_root.json
-        // check if a <sha256>.trusted_root.json was already created
-        let latest_trusted_root = self.get_latest_trusted_root();
-        if trusted_root_path != latest_trusted_root {
-            fs::copy(latest_trusted_root.clone(), &trusted_root_path).context(
-                error::FileCopySnafu {
-                    src: latest_trusted_root,
-                    destination: trusted_root_path.clone(),
-                },
-            )?;
-        }
+        let signing_config_path = self.outdir.join("targets").join("signing_config.v0.2.json");
 
-        let mut sigstore_trust_root = RhtasArgs::load_trusted_root(&trusted_root_path)?;
+        let result = async {
+            let mut keys = Vec::new();
+            for source in &self.keys {
+                let key_source = parse_key_source(source)?;
+                keys.push(key_source);
+            }
 
-        // If the "remove-<target>-target" argument was passed, remove the targets from the repository.
-        self.delete_targets(&mut editor, &mut sigstore_trust_root)
-            .await?;
+            self.update_repository_metadata(&mut editor)?;
 
-        self.set_all_targets(&mut editor, &mut sigstore_trust_root)
-            .await?;
+            // Create temporary targets/trusted_root.json
+            // check if a <sha256>.trusted_root.json was already created
+            let latest_trusted_root = self.get_latest_trusted_root();
+            if trusted_root_path != latest_trusted_root {
+                fs::copy(latest_trusted_root.clone(), &trusted_root_path).context(
+                    error::FileCopySnafu {
+                        src: latest_trusted_root,
+                        destination: trusted_root_path.clone(),
+                    },
+                )?;
+            }
 
-        // If a `Targets` metadata needs to be updated
-        if self.role.is_some() && self.indir.is_some() {
-            editor
-                .sign_targets_editor(&keys)
+            let latest_signing_config = self.get_latest_signing_config();
+            if latest_signing_config != signing_config_path {
+                fs::copy(latest_signing_config.clone(), &signing_config_path).context(
+                    error::FileCopySnafu {
+                        src: latest_signing_config,
+                        destination: signing_config_path.clone(),
+                    },
+                )?;
+            }
+
+            let mut sigstore_trust_bundle =
+                RhtasArgs::load_trust_bundle(&trusted_root_path, &signing_config_path)?;
+            // If the "remove-<target>-target" argument was passed, remove the targets from the repository.
+            self.delete_targets(&mut editor, &mut sigstore_trust_bundle)
+                .await?;
+
+            self.set_all_targets(&mut editor, &mut sigstore_trust_bundle)
+                .await?;
+
+            // If a `Targets` metadata needs to be updated
+            if self.role.is_some() && self.indir.is_some() {
+                editor
+                    .sign_targets_editor(&keys)
+                    .await
+                    .context(error::DelegationStructureSnafu)?
+                    .update_delegated_targets(
+                        self.role.as_ref().context(error::MissingSnafu {
+                            what: "delegated role",
+                        })?,
+                        self.indir
+                            .as_ref()
+                            .context(error::MissingSnafu {
+                                what: "delegated role metadata url",
+                            })?
+                            .as_str(),
+                    )
+                    .await
+                    .context(error::DelegateeNotFoundSnafu {
+                        role: self.role.as_ref().unwrap().clone(),
+                    })?;
+            }
+            let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
+
+            self.copy_target_files(&signed_repo).await?;
+
+            signed_repo
+                .write(&self.outdir)
                 .await
-                .context(error::DelegationStructureSnafu)?
-                .update_delegated_targets(
-                    self.role.as_ref().context(error::MissingSnafu {
-                        what: "delegated role",
-                    })?,
-                    self.indir
-                        .as_ref()
-                        .context(error::MissingSnafu {
-                            what: "delegated role metadata url",
-                        })?
-                        .as_str(),
-                )
-                .await
-                .context(error::DelegateeNotFoundSnafu {
-                    role: self.role.as_ref().unwrap().clone(),
+                .context(error::WriteRepoSnafu {
+                    directory: &self.outdir,
                 })?;
+
+            Ok::<(), error::Error>(())
         }
+        .await;
 
-        let signed_repo = editor.sign(&keys).await.context(error::SignRepoSnafu)?;
-
-        self.copy_target_files(&signed_repo).await?;
-
-        signed_repo
-            .write(&self.outdir)
-            .await
-            .context(error::WriteRepoSnafu {
-                directory: &self.outdir,
-            })?;
-
-        // delete targets/trusted_root.json
+        // delete targets/trusted_root.json & targets/signing_config.v0.2.json
         if trusted_root_path.exists() {
             fs::remove_file(&trusted_root_path).context(error::FileDeleteSnafu {
                 file: trusted_root_path.clone(),
             })?;
         }
 
-        Ok(())
+        if signing_config_path.exists() {
+            fs::remove_file(&signing_config_path).context(error::FileDeleteSnafu {
+                file: signing_config_path.clone(),
+            })?;
+        }
+
+        result
     }
 
     async fn delete_targets(
         &self,
         editor: &mut RepositoryEditor,
-        sigstore_trust_root: &mut SigstoreTrustRoot,
+        sigstore_trust_bundle: &mut SigstoreTrustBundle,
     ) -> Result<()> {
         for target_name in &self.delete_fulcio_targets {
             editor
@@ -303,7 +329,7 @@ impl RhtasArgs {
                 })?;
             self.remove_target_file(
                 target_name.raw(),
-                sigstore_trust_root,
+                sigstore_trust_bundle,
                 Target::CertificateAuthority,
             )
             .await?;
@@ -315,7 +341,7 @@ impl RhtasArgs {
                 .context(error::RemoveTargetSnafu {
                     name: target_name.raw(),
                 })?;
-            self.remove_target_file(target_name.raw(), sigstore_trust_root, Target::Ctlog)
+            self.remove_target_file(target_name.raw(), sigstore_trust_bundle, Target::Ctlog)
                 .await?;
         }
 
@@ -325,7 +351,7 @@ impl RhtasArgs {
                 .context(error::RemoveTargetSnafu {
                     name: target_name.raw(),
                 })?;
-            self.remove_target_file(target_name.raw(), sigstore_trust_root, Target::Tlog)
+            self.remove_target_file(target_name.raw(), sigstore_trust_bundle, Target::Tlog)
                 .await?;
         }
 
@@ -337,7 +363,7 @@ impl RhtasArgs {
                 })?;
             self.remove_target_file(
                 target_name.raw(),
-                sigstore_trust_root,
+                sigstore_trust_bundle,
                 Target::TimestampAuthority,
             )
             .await?;
@@ -360,22 +386,43 @@ impl RhtasArgs {
         Ok(())
     }
 
-    fn load_trusted_root(trusted_root_path: &PathBuf) -> Result<SigstoreTrustRoot> {
-        if Path::new(&trusted_root_path).exists() {
+    fn load_trust_bundle(
+        trusted_root_path: &PathBuf,
+        signing_config_path: &PathBuf,
+    ) -> Result<SigstoreTrustBundle> {
+        if Path::new(trusted_root_path).exists() {
             let file = File::open(trusted_root_path).context(error::FileOpenSnafu {
                 path: trusted_root_path.clone(),
             })?;
-            let trusted_root: TrustedRoot =
-                from_reader(file).context(error::FileParseJsonSnafu {
+            let trusted_root: TrustedRoot = serde_json::from_reader(BufReader::new(file)).context(
+                error::FileParseJsonSnafu {
                     path: trusted_root_path.clone(),
+                },
+            )?;
+
+            let signing_config = if signing_config_path.exists() {
+                let file = File::open(signing_config_path).context(error::FileOpenSnafu {
+                    path: signing_config_path.clone(),
                 })?;
-            Ok(SigstoreTrustRoot::from_trusted_root(trusted_root))
+                Some(serde_json::from_reader(BufReader::new(file)).context(
+                    error::FileParseJsonSnafu {
+                        path: signing_config_path,
+                    },
+                )?)
+            } else {
+                None
+            };
+
+            Ok(SigstoreTrustBundle::from_trust_bundle(
+                trusted_root,
+                signing_config,
+            ))
         } else {
-            Ok(RhtasArgs::new_trusted_root())
+            Ok(RhtasArgs::new_trust_bundle())
         }
     }
 
-    pub fn new_trusted_root() -> SigstoreTrustRoot {
+    pub fn new_trust_bundle() -> SigstoreTrustBundle {
         let trusted_root = TrustedRoot {
             media_type: "application/vnd.dev.sigstore.trustedroot+json;version=0.1".to_string(),
             tlogs: Vec::new(),
@@ -384,41 +431,66 @@ impl RhtasArgs {
             timestamp_authorities: Vec::new(),
         };
 
-        SigstoreTrustRoot::from_trusted_root(trusted_root)
+        let signing_config = SigningConfig {
+            media_type: "application/vnd.dev.sigstore.signingconfig.v0.2+json".to_string(),
+            ca_urls: Vec::new(),
+            oidc_urls: Vec::new(),
+            rekor_tlog_urls: Vec::new(),
+            tsa_urls: Vec::new(),
+            rekor_tlog_config: Some(ServiceConfiguration {
+                selector: 2,
+                count: 0,
+            }),
+            tsa_config: Some(ServiceConfiguration {
+                selector: 2,
+                count: 0,
+            }),
+        };
+
+        SigstoreTrustBundle::from_trust_bundle(trusted_root, Some(signing_config))
     }
 
     async fn set_all_targets(
         &self,
         editor: &mut RepositoryEditor,
-        sigstore_trust_root: &mut SigstoreTrustRoot,
+        sigstore_trust_bundle: &mut SigstoreTrustBundle,
     ) -> Result<()> {
         // If the "set-fulcio-target" argument was passed, build a target
         // and add it to the repository.
-        self.set_fulcio_target(editor, sigstore_trust_root).await?;
+        self.set_fulcio_target(editor, sigstore_trust_bundle)
+            .await?;
 
         // If the "set-ctlog-target" argument was passed, build a target
         // and add it to the repository.
-        self.set_ctlog_target(editor, sigstore_trust_root).await?;
+        self.set_ctlog_target(editor, sigstore_trust_bundle).await?;
 
         // If the "set-rekor-target" argument was passed, build a target
         // and add it to the repository.
-        self.set_rekor_target(editor, sigstore_trust_root).await?;
+        self.set_rekor_target(editor, sigstore_trust_bundle).await?;
 
         // If the "set-tsa-target" argument was passed, build a target
         // and add it to the repository.
-        self.set_tsa_target(editor, sigstore_trust_root).await?;
+        self.set_tsa_target(editor, sigstore_trust_bundle).await?;
 
         // Save then set trust_root
         let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
-        match SigstoreTrustRoot::save_to_file(
-            sigstore_trust_root,
-            trusted_root_path.clone().as_path(),
-        ) {
-            Ok(()) => {}
-            Err(e) => {
-                eprintln!("Error saving to file: {e}");
-            }
-        }
+        sigstore_trust_bundle
+            .save_trusted_root_to_file(&trusted_root_path)
+            .map_err(|e| error::Error::FileOpen {
+                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                path: trusted_root_path.clone(),
+                backtrace: snafu::Backtrace::new(),
+            })?;
+
+        let signing_config_path = self.outdir.join("targets").join("signing_config.v0.2.json");
+        sigstore_trust_bundle
+            .save_signing_config_to_file(&signing_config_path)
+            .map_err(|e| error::Error::FileOpen {
+                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                path: signing_config_path.clone(),
+                backtrace: snafu::Backtrace::new(),
+            })?;
+
         self.set_trust_root_target(editor).await?;
         Ok(())
     }
@@ -451,6 +523,36 @@ impl RhtasArgs {
                 .await
                 .context(error::LinkTargetsSnafu {
                     indir: &trusted_root_path,
+                    outdir: targets_outdir,
+                })?;
+        }
+
+        // Handle signing_config.v0.2.json
+        let signing_config_path = self.outdir.join("targets").join("signing_config.v0.2.json");
+        if fs::metadata(&signing_config_path).is_ok() {
+            let resolved_signing_config_path = if self.follow {
+                tokio::fs::canonicalize(&signing_config_path)
+                    .await
+                    .context(error::ResolveSymlinkSnafu {
+                        path: &signing_config_path,
+                    })?
+            } else {
+                signing_config_path.clone()
+            };
+            let target_name =
+                TargetName::new("signing_config.v0.2.json").context(error::RemoveTargetSnafu {
+                    name: "signing_config.v0.2.json".to_string(),
+                })?;
+            signed_repo
+                .copy_target(
+                    &resolved_signing_config_path,
+                    targets_outdir,
+                    self.target_path_exists,
+                    Some(&target_name),
+                )
+                .await
+                .context(error::LinkTargetsSnafu {
+                    indir: &signing_config_path,
                     outdir: targets_outdir,
                 })?;
         }
@@ -501,24 +603,33 @@ impl RhtasArgs {
 
     async fn set_trust_root_target(&self, editor: &mut RepositoryEditor) -> Result<()> {
         let trusted_root_path = self.outdir.join("targets").join("trusted_root.json");
-        // Check if the trusted_root.json exists
         if tokio::fs::metadata(&trusted_root_path).await.is_ok() {
             let mut trusted_root_target = build_targets(&trusted_root_path, self.follow).await?;
-            // Add trusted_root as a target
             if let Some((target_name, target)) = trusted_root_target.iter_mut().next() {
-                // Add the trusted root target
                 editor
                     .add_target(target_name.clone(), target.clone())
                     .context(error::DelegationStructureSnafu)?;
             }
         }
+
+        let signing_config_path = self.outdir.join("targets").join("signing_config.v0.2.json");
+        if tokio::fs::metadata(&signing_config_path).await.is_ok() {
+            let mut signing_config_target =
+                build_targets(&signing_config_path, self.follow).await?;
+            if let Some((target_name, target)) = signing_config_target.iter_mut().next() {
+                editor
+                    .add_target(target_name.clone(), target.clone())
+                    .context(error::DelegationStructureSnafu)?;
+            }
+        }
+
         Ok(())
     }
 
     async fn set_fulcio_target(
         &self,
         editor: &mut RepositoryEditor,
-        trusted_root: &mut SigstoreTrustRoot,
+        trust_bundle: &mut SigstoreTrustBundle,
     ) -> Result<()> {
         if let Some(ref fulcio_target_path) = self.fulcio_target {
             let mut fulcio_target = build_targets(fulcio_target_path, self.follow).await?;
@@ -582,12 +693,12 @@ impl RhtasArgs {
                 operator: String::new(),
             };
 
-            match trusted_root
+            match trust_bundle
                 .set_target(TargetType::Authority(new_ca), Target::CertificateAuthority)
             {
                 Ok(()) => {}
                 Err(e) => {
-                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                    eprintln!("Failed to set target: {e:?} in trust_bundle");
                 }
             }
         }
@@ -597,7 +708,7 @@ impl RhtasArgs {
     async fn set_ctlog_target(
         &self,
         editor: &mut RepositoryEditor,
-        trusted_root: &mut SigstoreTrustRoot,
+        trust_bundle: &mut SigstoreTrustBundle,
     ) -> Result<()> {
         if let Some(ref ctlog_target_path) = self.ctlog_target {
             let mut ctlog_target = build_targets(ctlog_target_path, self.follow).await?;
@@ -673,10 +784,10 @@ impl RhtasArgs {
                 operator: String::new(),
             };
 
-            match trusted_root.set_target(TargetType::Log(new_ctlog), Target::Ctlog) {
+            match trust_bundle.set_target(TargetType::Log(new_ctlog), Target::Ctlog) {
                 Ok(()) => {}
                 Err(e) => {
-                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                    eprintln!("Failed to set target: {e:?} in trust_bundle");
                 }
             }
         }
@@ -686,7 +797,7 @@ impl RhtasArgs {
     async fn set_rekor_target(
         &self,
         editor: &mut RepositoryEditor,
-        trusted_root: &mut SigstoreTrustRoot,
+        trust_bundle: &mut SigstoreTrustBundle,
     ) -> Result<()> {
         if let Some(ref rekor_target_path) = self.rekor_target {
             let mut rekor_target = build_targets(rekor_target_path, self.follow).await?;
@@ -762,10 +873,10 @@ impl RhtasArgs {
                 operator: String::new(),
             };
 
-            match trusted_root.set_target(TargetType::Log(new_tlog), Target::Tlog) {
+            match trust_bundle.set_target(TargetType::Log(new_tlog), Target::Tlog) {
                 Ok(()) => {}
                 Err(e) => {
-                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                    eprintln!("Failed to set target: {e:?} in trust_bundle");
                 }
             }
         }
@@ -775,7 +886,7 @@ impl RhtasArgs {
     async fn set_tsa_target(
         &self,
         editor: &mut RepositoryEditor,
-        trusted_root: &mut SigstoreTrustRoot,
+        trust_bundle: &mut SigstoreTrustBundle,
     ) -> Result<()> {
         if let Some(ref tsa_target_path) = self.tsa_target {
             let mut tsa_target = build_targets(tsa_target_path, self.follow).await?;
@@ -839,12 +950,12 @@ impl RhtasArgs {
                 operator: String::new(),
             };
 
-            match trusted_root
+            match trust_bundle
                 .set_target(TargetType::Authority(new_tsa), Target::TimestampAuthority)
             {
                 Ok(()) => {}
                 Err(e) => {
-                    eprintln!("Failed to set target: {e:?} in trusted_root");
+                    eprintln!("Failed to set target: {e:?} in trust_bundle");
                 }
             }
         }
@@ -854,7 +965,7 @@ impl RhtasArgs {
     async fn remove_target_file(
         &self,
         target_name: &str,
-        sigstore_trust_root: &mut SigstoreTrustRoot,
+        sigstore_trust_bundle: &mut SigstoreTrustBundle,
         target_type: Target,
     ) -> Result<()> {
         let targets_dir = self.outdir.join("targets");
@@ -890,16 +1001,30 @@ impl RhtasArgs {
                     })?;
 
                 // Remove target file
+                // Used by delete_signing_config_target
+                let target_uri =
+                    sigstore_trust_bundle.get_uri_for_target(&target_type, &identifier[0]);
+
                 tokio::fs::remove_file(&file_path)
                     .await
                     .context(error::RemoveTargetPathSnafu {
                         path: file_path.clone(),
                     })?;
                 // Remove target from TrustedRoot
-                match sigstore_trust_root.delete_target(&target_type, &identifier[0]) {
+                match sigstore_trust_bundle.delete_target(&target_type, &identifier[0]) {
                     Ok(()) => {}
                     Err(e) => {
                         eprintln!("Failed to delete target: {e:?} from trusted_root");
+                    }
+                }
+
+                // Remove target config from SigningConfig
+                if let Some(uri) = target_uri {
+                    match sigstore_trust_bundle.delete_signing_config_target(&target_type, &uri) {
+                        Ok(()) => {}
+                        Err(e) => {
+                            eprintln!("Failed to delete {uri} from signing_config: {e:?}");
+                        }
                     }
                 }
             }
@@ -1157,37 +1282,101 @@ impl RhtasArgs {
     }
 
     fn get_latest_trusted_root(&self) -> PathBuf {
-        let targets_dir = self.outdir.join("targets");
-        let mut sha256_trusted_root_files: Vec<PathBuf> = Vec::new();
-        if let Ok(entries) = fs::read_dir(&targets_dir) {
+        let repo_dir = &self.outdir;
+        let targets_dir = repo_dir.join("targets");
+
+        // Find the latest target metadata file: N.targets.json
+        let mut latest_targets: Option<PathBuf> = None;
+        let mut latest_version: u64 = 0;
+
+        if let Ok(entries) = fs::read_dir(repo_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if let Some(extension) = path.extension() {
-                    if extension == "json"
-                        && path
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .ends_with(".trusted_root.json")
-                    {
-                        sha256_trusted_root_files.push(path);
+                if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+                    if let Some(version_str) = file_name.strip_suffix(".targets.json") {
+                        if let Ok(version) = version_str.parse::<u64>() {
+                            if version > latest_version {
+                                latest_version = version;
+                                latest_targets = Some(path);
+                            }
+                        }
                     }
                 }
             }
         }
-        // get the latest file based on update time
-        if !sha256_trusted_root_files.is_empty() {
-            let latest_trusted_root = sha256_trusted_root_files.into_iter().max_by_key(|path| {
-                fs::metadata(path)
-                    .and_then(|metadata| metadata.modified())
-                    .map(|time| time.duration_since(UNIX_EPOCH).unwrap_or(Duration::ZERO))
-                    .unwrap_or(Duration::ZERO)
-            });
-            if let Some(latest_file) = latest_trusted_root {
-                return latest_file;
+
+        // Parse latest targets.json to identify latest trusted_root reference
+        if let Some(targets_path) = latest_targets {
+            if let Ok(data) = fs::read_to_string(&targets_path) {
+                if let Ok(json) = serde_json::from_str::<Value>(&data) {
+                    if let Some(hash_val) = json
+                        .get("signed")
+                        .and_then(|s| s.get("targets"))
+                        .and_then(|t| t.get("trusted_root.json"))
+                        .and_then(|t| t.get("hashes"))
+                        .and_then(|h| h.get("sha256"))
+                        .and_then(|v| v.as_str())
+                    {
+                        let hashed_path = targets_dir.join(format!("{hash_val}.trusted_root.json"));
+                        if hashed_path.exists() {
+                            return hashed_path;
+                        }
+                    }
+                }
             }
         }
-        // return the default "trusted_root.json" path
+
+        // fallback: return the default "trusted_root.json" path
         targets_dir.join("trusted_root.json")
+    }
+
+    fn get_latest_signing_config(&self) -> PathBuf {
+        let repo_dir = &self.outdir;
+        let targets_dir = repo_dir.join("targets");
+
+        // Find the latest target metadata file: N.targets.json
+        let mut latest_targets: Option<PathBuf> = None;
+        let mut latest_version: u64 = 0;
+
+        if let Ok(entries) = fs::read_dir(repo_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+                    if let Some(version_str) = file_name.strip_suffix(".targets.json") {
+                        if let Ok(version) = version_str.parse::<u64>() {
+                            if version > latest_version {
+                                latest_version = version;
+                                latest_targets = Some(path);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse latest targets.json to identify latest signing_config reference
+        if let Some(targets_path) = latest_targets {
+            if let Ok(data) = fs::read_to_string(&targets_path) {
+                if let Ok(json) = serde_json::from_str::<Value>(&data) {
+                    if let Some(hash_val) = json
+                        .get("signed")
+                        .and_then(|s| s.get("targets"))
+                        .and_then(|t| t.get("signing_config.v0.2.json"))
+                        .and_then(|t| t.get("hashes"))
+                        .and_then(|h| h.get("sha256"))
+                        .and_then(|v| v.as_str())
+                    {
+                        let hashed_path =
+                            targets_dir.join(format!("{hash_val}.signing_config.v0.2.json"));
+                        if hashed_path.exists() {
+                            return hashed_path;
+                        }
+                    }
+                }
+            }
+        }
+
+        // fallback: return the default "signing_config.v0.2.json" path
+        targets_dir.join("signing_config.v0.2.json")
     }
 }

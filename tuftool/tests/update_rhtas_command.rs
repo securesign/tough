@@ -4,13 +4,12 @@
 mod test_utils;
 
 use crate::test_utils::days;
-use assert_cmd::assert::Assert;
 use assert_cmd::Command;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::path::Path;
 use tempfile::TempDir;
 use test_utils::dir_url;
-use tough::{RepositoryLoader, TargetName};
+use tough::RepositoryLoader;
 
 fn create_repo<P: AsRef<Path>>(repo_dir: P) {
     let timestamp_expiration = Utc::now().checked_add_signed(days(1)).unwrap();

@@ -15,7 +15,7 @@
 
 //! Helper Structs to interact with the Sigstore TUF repository.
 //!
-//! The main interaction point is [`SigstoreTrustRoot`], which fetches Rekor's
+//! The main interaction point is [`SigstoreTrustBundle`], which fetches Rekor's
 //! public key and Fulcio's certificate.
 //!
 //! These can later be given to [`cosign::ClientBuilder`](crate::cosign::ClientBuilder)
@@ -28,7 +28,10 @@ use tokio_util::bytes::BytesMut;
 use pki_types::CertificateDer;
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::TimeRange,
-    trustroot::v1::{CertificateAuthority, TransparencyLogInstance, TrustedRoot},
+    trustroot::v1::{
+        CertificateAuthority, Service, ServiceConfiguration, SigningConfig,
+        TransparencyLogInstance, TrustedRoot,
+    },
 };
 use std::str;
 use tough::TargetName;
@@ -42,14 +45,16 @@ use std::convert::TryInto;
 
 /// Securely fetches Rekor public key and Fulcio certificates from Sigstore's TUF repository.
 #[derive(Debug)]
-pub struct SigstoreTrustRoot {
+pub struct SigstoreTrustBundle {
     trusted_root: TrustedRoot,
+    signing_config: Option<SigningConfig>,
 }
 
 pub enum TargetType {
     Authority(CertificateAuthority),
     Log(TransparencyLogInstance),
 }
+#[derive(Debug)]
 pub enum Target {
     CertificateAuthority,
     TimestampAuthority,
@@ -67,10 +72,16 @@ pub enum Target {
 #[allow(clippy::unnecessary_wraps)]
 #[allow(clippy::clone_on_copy)]
 #[allow(deprecated)]
-impl SigstoreTrustRoot {
-    // Needed to construct SigstoreTrustRoot from trusted_root.json
-    pub fn from_trusted_root(trusted_root: TrustedRoot) -> Self {
-        SigstoreTrustRoot { trusted_root }
+impl SigstoreTrustBundle {
+    // Needed to construct SigstoreTrustBundle from trusted_root.json & signing_config.v0.2.json
+    pub fn from_trust_bundle(
+        trusted_root: TrustedRoot,
+        signing_config: Option<SigningConfig>,
+    ) -> Self {
+        SigstoreTrustBundle {
+            trusted_root,
+            signing_config,
+        }
     }
     /// Constructs a new trust root from a [`tough::Repository`].
     async fn from_tough(
@@ -82,7 +93,19 @@ impl SigstoreTrustRoot {
             serde_json::from_slice(&data[..])?
         };
 
-        Ok(Self { trusted_root })
+        let signing_config = {
+            let data =
+                Self::fetch_target(repository, checkout_dir, "signing_config.v0.2.json").await;
+            match data {
+                Ok(data) => Some(serde_json::from_slice(&data[..])?),
+                Err(_) => None, // SigningConfig is optional
+            }
+        };
+
+        Ok(Self {
+            trusted_root,
+            signing_config,
+        })
     }
 
     /// Constructs a new trust root backed by the Sigstore Public Good Instance.
@@ -183,11 +206,25 @@ impl SigstoreTrustRoot {
             .map(|cert| cert.raw_bytes.as_slice())
     }
     /// Save the trusted root to a file
-    pub fn save_to_file(&self, file_path: &Path) -> Result<()> {
+    pub fn save_trusted_root_to_file(&self, file_path: &Path) -> Result<()> {
         let json = serde_json::to_string_pretty(&self.trusted_root)
             .map_err(|e| SigstoreError::SerializationError(e.to_string()))?;
 
         std::fs::write(file_path, json).map_err(SigstoreError::from)
+    }
+
+    /// Save the signing config to a file
+    pub fn save_signing_config_to_file(&self, file_path: &Path) -> Result<()> {
+        if let Some(signing_config) = &self.signing_config {
+            let json = serde_json::to_string_pretty(signing_config)
+                .map_err(|e| SigstoreError::SerializationError(e.to_string()))?;
+            std::fs::write(file_path, json).map_err(SigstoreError::from)?;
+            Ok(())
+        } else {
+            Err(SigstoreError::UnexpectedError(
+                "No signing_config available to save".to_string(),
+            ))
+        }
     }
 
     // SECURESIGN-2010
@@ -212,7 +249,7 @@ impl SigstoreTrustRoot {
                             .iter()
                             .filter(|cert| {
                                 let corrupted =
-                                    SigstoreTrustRoot::is_corrupted_raw_bytes(&cert.raw_bytes);
+                                    SigstoreTrustBundle::is_corrupted_raw_bytes(&cert.raw_bytes);
                                 !corrupted
                             })
                             .cloned()
@@ -230,7 +267,7 @@ impl SigstoreTrustRoot {
                             .iter()
                             .filter(|cert| {
                                 let corrupted =
-                                    SigstoreTrustRoot::is_corrupted_raw_bytes(&cert.raw_bytes);
+                                    SigstoreTrustBundle::is_corrupted_raw_bytes(&cert.raw_bytes);
                                 !corrupted
                             })
                             .cloned()
@@ -245,7 +282,7 @@ impl SigstoreTrustRoot {
                     let corrupted = ctlog.public_key.as_ref().map_or(false, |key| {
                         key.raw_bytes
                             .as_ref()
-                            .map_or(false, |rb| SigstoreTrustRoot::is_corrupted_raw_bytes(rb))
+                            .map_or(false, |rb| SigstoreTrustBundle::is_corrupted_raw_bytes(rb))
                     });
                     !corrupted
                 });
@@ -255,7 +292,7 @@ impl SigstoreTrustRoot {
                     let corrupted = tlog.public_key.as_ref().map_or(false, |key| {
                         key.raw_bytes
                             .as_ref()
-                            .map_or(false, |rb| SigstoreTrustRoot::is_corrupted_raw_bytes(rb))
+                            .map_or(false, |rb| SigstoreTrustBundle::is_corrupted_raw_bytes(rb))
                     });
                     !corrupted
                 });
@@ -299,8 +336,42 @@ impl SigstoreTrustRoot {
                                 }
                             }
                         }
-                        self.trusted_root.certificate_authorities.push(ca);
+                        self.trusted_root.certificate_authorities.push(ca.clone());
                     }
+                    // Update SigningConfig ca_urls
+                    let signing_config = self.signing_config.get_or_insert_with(|| SigningConfig {
+                        media_type: "application/vnd.dev.sigstore.signingconfig.v0.2+json"
+                            .to_string(),
+                        ca_urls: Vec::new(),
+                        oidc_urls: Vec::new(),
+                        rekor_tlog_urls: Vec::new(),
+                        tsa_urls: Vec::new(),
+                        rekor_tlog_config: Some(ServiceConfiguration {
+                            selector: 2,
+                            count: 0,
+                        }),
+                        tsa_config: Some(ServiceConfiguration {
+                            selector: 2,
+                            count: 0,
+                        }),
+                    });
+
+                    let uri = ca.clone().uri;
+                    let operator = if ca.clone().operator.clone().is_empty() {
+                        "sigstore.dev".to_string()
+                    } else {
+                        ca.clone().operator
+                    };
+                    let valid_for = ca.clone().valid_for;
+                    signing_config
+                        .ca_urls
+                        .retain(|service| service.url != ca.uri);
+                    signing_config.ca_urls.push(Service {
+                        url: uri,
+                        major_api_version: 1,
+                        valid_for,
+                        operator,
+                    });
                 } else {
                     return Err(SigstoreError::UnexpectedError(
                         "Expected a CertificateAuthority, but got a different target.".to_string(),
@@ -338,8 +409,42 @@ impl SigstoreTrustRoot {
                                 }
                             }
                         }
-                        self.trusted_root.timestamp_authorities.push(tsa);
+                        self.trusted_root.timestamp_authorities.push(tsa.clone());
                     }
+                    // Update SigningConfig ca_urls
+                    let signing_config = self.signing_config.get_or_insert_with(|| SigningConfig {
+                        media_type: "application/vnd.dev.sigstore.signingconfig.v0.2+json"
+                            .to_string(),
+                        ca_urls: Vec::new(),
+                        oidc_urls: Vec::new(),
+                        rekor_tlog_urls: Vec::new(),
+                        tsa_urls: Vec::new(),
+                        rekor_tlog_config: Some(ServiceConfiguration {
+                            selector: 2,
+                            count: 0,
+                        }),
+                        tsa_config: Some(ServiceConfiguration {
+                            selector: 2,
+                            count: 0,
+                        }),
+                    });
+
+                    let uri = tsa.clone().uri;
+                    let operator = if tsa.clone().operator.clone().is_empty() {
+                        "sigstore.dev".to_string()
+                    } else {
+                        tsa.clone().operator
+                    };
+                    let valid_for = tsa.clone().valid_for;
+                    signing_config
+                        .tsa_urls
+                        .retain(|service| service.url != tsa.uri);
+                    signing_config.tsa_urls.push(Service {
+                        url: uri,
+                        major_api_version: 1,
+                        valid_for,
+                        operator,
+                    });
                 } else {
                     return Err(SigstoreError::UnexpectedError(
                         "Expected a TimestampAuthority, but got a different target.".to_string(),
@@ -444,8 +549,46 @@ impl SigstoreTrustRoot {
                                 }
                             }
                         }
-                        self.trusted_root.tlogs.push(tlog);
+                        self.trusted_root.tlogs.push(tlog.clone());
                     }
+                    // Update SigningConfig rekor_tlog_urls
+                    let signing_config = self.signing_config.get_or_insert_with(|| SigningConfig {
+                        media_type: "application/vnd.dev.sigstore.signingconfig.v0.2+json"
+                            .to_string(),
+                        ca_urls: Vec::new(),
+                        oidc_urls: Vec::new(),
+                        rekor_tlog_urls: Vec::new(),
+                        tsa_urls: Vec::new(),
+                        rekor_tlog_config: Some(ServiceConfiguration {
+                            selector: 2,
+                            count: 0,
+                        }),
+                        tsa_config: Some(ServiceConfiguration {
+                            selector: 2,
+                            count: 0,
+                        }),
+                    });
+
+                    let base_url = tlog.clone().base_url;
+                    let operator = if tlog.clone().operator.is_empty() {
+                        "sigstore.dev".to_string()
+                    } else {
+                        tlog.clone().operator
+                    };
+                    let valid_for = tlog
+                        .clone()
+                        .public_key
+                        .as_ref()
+                        .and_then(|pk| pk.valid_for.clone());
+                    signing_config
+                        .rekor_tlog_urls
+                        .retain(|service| service.url != tlog.base_url);
+                    signing_config.rekor_tlog_urls.push(Service {
+                        url: base_url,
+                        major_api_version: 1,
+                        valid_for,
+                        operator,
+                    });
                 } else {
                     return Err(SigstoreError::UnexpectedError(
                         "Expected a Tlog, but got a different target.".to_string(),
@@ -469,7 +612,7 @@ impl SigstoreTrustRoot {
                             .iter()
                             .filter(|cert| {
                                 let corrupted =
-                                    SigstoreTrustRoot::is_corrupted_raw_bytes(&cert.raw_bytes);
+                                    SigstoreTrustBundle::is_corrupted_raw_bytes(&cert.raw_bytes);
                                 !corrupted
                             })
                             .cloned()
@@ -487,7 +630,7 @@ impl SigstoreTrustRoot {
                             .iter()
                             .filter(|cert| {
                                 let corrupted =
-                                    SigstoreTrustRoot::is_corrupted_raw_bytes(&cert.raw_bytes);
+                                    SigstoreTrustBundle::is_corrupted_raw_bytes(&cert.raw_bytes);
                                 !corrupted
                             })
                             .cloned()
@@ -502,7 +645,7 @@ impl SigstoreTrustRoot {
                     let corrupted = ctlog.public_key.as_ref().map_or(false, |key| {
                         key.raw_bytes
                             .as_ref()
-                            .map_or(false, |rb| SigstoreTrustRoot::is_corrupted_raw_bytes(rb))
+                            .map_or(false, |rb| SigstoreTrustBundle::is_corrupted_raw_bytes(rb))
                     });
                     !corrupted
                 });
@@ -512,7 +655,7 @@ impl SigstoreTrustRoot {
                     let corrupted = tlog.public_key.as_ref().map_or(false, |key| {
                         key.raw_bytes
                             .as_ref()
-                            .map_or(false, |rb| SigstoreTrustRoot::is_corrupted_raw_bytes(rb))
+                            .map_or(false, |rb| SigstoreTrustBundle::is_corrupted_raw_bytes(rb))
                     });
                     !corrupted
                 });
@@ -559,9 +702,77 @@ impl SigstoreTrustRoot {
         }
         Ok(())
     }
+
+    // Delete a target config from the SigningConfig by its uri as identifier:
+    pub fn delete_signing_config_target(&mut self, target_type: &Target, uri: &str) -> Result<()> {
+        let Some(signing_config) = &mut self.signing_config else {
+            return Ok(());
+        };
+
+        match target_type {
+            Target::CertificateAuthority => {
+                signing_config.ca_urls.retain(|svc| svc.url != uri);
+            }
+            Target::Tlog => {
+                signing_config.rekor_tlog_urls.retain(|svc| svc.url != uri);
+            }
+            Target::TimestampAuthority => {
+                signing_config.tsa_urls.retain(|svc| svc.url != uri);
+            }
+            Target::Ctlog => {
+                // SigningConfig doesn’t include CTlog
+            }
+        }
+        Ok(())
+    }
+
+    // Get the URI associated with a given target identifier (certificate or public key)
+    // by inspecting the TrustedRoot.
+    pub fn get_uri_for_target(&self, target_type: &Target, identifier: &[u8]) -> Option<String> {
+        match target_type {
+            Target::CertificateAuthority => {
+                for ca in &self.trusted_root.certificate_authorities {
+                    if let Some(chain) = &ca.cert_chain {
+                        for cert in &chain.certificates {
+                            if cert.raw_bytes == identifier && !ca.uri.is_empty() {
+                                return Some(ca.uri.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            Target::Tlog => {
+                for tlog in &self.trusted_root.tlogs {
+                    if let Some(key) = &tlog.public_key {
+                        if let Some(raw_bytes) = &key.raw_bytes {
+                            if raw_bytes == identifier && !tlog.base_url.is_empty() {
+                                return Some(tlog.base_url.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            Target::TimestampAuthority => {
+                for tsa in &self.trusted_root.timestamp_authorities {
+                    if let Some(chain) = &tsa.cert_chain {
+                        for cert in &chain.certificates {
+                            if cert.raw_bytes == identifier && !tsa.uri.is_empty() {
+                                return Some(tsa.uri.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            Target::Ctlog => {
+                // SigningConfig doesn’t contain CT logs
+                return None;
+            }
+        }
+        None
+    }
 }
 
-impl crate::sigstore_trust::trust::TrustRoot for SigstoreTrustRoot {
+impl crate::sigstore_trust::trust::TrustRoot for SigstoreTrustBundle {
     /// Fetch Fulcio certificates from the given TUF repository or reuse
     /// the local cache if its contents are not outdated.
     ///
@@ -656,7 +867,7 @@ mod tests {
     use std::time::SystemTime;
     use tempfile::TempDir;
 
-    fn verify(root: &SigstoreTrustRoot, cache_dir: Option<&Path>) {
+    fn verify(root: &SigstoreTrustBundle, cache_dir: Option<&Path>) {
         if let Some(cache_dir) = cache_dir {
             assert!(
                 cache_dir.join("trusted_root.json").exists(),
@@ -683,10 +894,10 @@ mod tests {
         TempDir::new().expect("cannot create temp cache dir")
     }
 
-    async fn trust_root(cache: Option<&Path>) -> SigstoreTrustRoot {
-        SigstoreTrustRoot::new(cache)
+    async fn trust_root(cache: Option<&Path>) -> SigstoreTrustBundle {
+        SigstoreTrustBundle::new(cache)
             .await
-            .expect("failed to construct SigstoreTrustRoot")
+            .expect("failed to construct SigstoreTrustBundle")
     }
 
     #[rstest]
@@ -748,9 +959,9 @@ mod tests {
     #[tokio::test]
     async fn test_add_new_certificate_authority() {
         let cache_dir = None;
-        let mut trust_root = SigstoreTrustRoot::new(cache_dir)
+        let mut trust_root = SigstoreTrustBundle::new(cache_dir)
             .await
-            .expect("Failed to create SigstoreTrustRoot");
+            .expect("Failed to create SigstoreTrustBundle");
         let initial_length = trust_root.trusted_root.certificate_authorities.len();
         let new_ca = CertificateAuthority {
             subject: Some(DistinguishedName {
@@ -811,9 +1022,9 @@ mod tests {
     #[tokio::test]
     async fn test_update_certificate_authority() {
         let cache_dir = None;
-        let mut trust_root = SigstoreTrustRoot::new(cache_dir)
+        let mut trust_root = SigstoreTrustBundle::new(cache_dir)
             .await
-            .expect("Failed to create SigstoreTrustRoot");
+            .expect("Failed to create SigstoreTrustBundle");
         let initial_length = trust_root.trusted_root.certificate_authorities.len();
 
         // Update the last certificate authority
@@ -856,9 +1067,9 @@ mod tests {
     #[tokio::test]
     async fn test_add_new_ctlog() {
         let cache_dir = None;
-        let mut trust_root = SigstoreTrustRoot::new(cache_dir)
+        let mut trust_root = SigstoreTrustBundle::new(cache_dir)
             .await
-            .expect("Failed to create SigstoreTrustRoot");
+            .expect("Failed to create SigstoreTrustBundle");
         let initial_length = trust_root.trusted_root.ctlogs.len();
         let new_ctlog = TransparencyLogInstance {
             base_url: String::from("https://ctfe.sigstore.dev/test"),
@@ -924,9 +1135,9 @@ mod tests {
     #[tokio::test]
     async fn test_delete_certificate_authority() {
         let cache_dir = None;
-        let mut trust_root = SigstoreTrustRoot::new(cache_dir)
+        let mut trust_root = SigstoreTrustBundle::new(cache_dir)
             .await
-            .expect("Failed to create SigstoreTrustRoot");
+            .expect("Failed to create SigstoreTrustBundle");
 
         // Add a new CertificateAuthority
         let cert_raw_bytes = String::from("MIIB+DCCAX6gAwIBAgITNVkDZoCiofPDsy7dfm6geLguhzAKBggqhkjOPQQDAzAqMRUwEwYDVQEKEwxzaWdzdG9yZS5kZXYxETAPBgNVBAMTCHNpZ3N0b3JlMB4XDTIxMDMwNzAzMjAyOVoXDTMxMDIyMzAzMjAyOVowKjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTB2MBAGByqGSM49AgEGBSuBBAAiA2IABLSyA7Ii5k+pNO8ZEWY0ylemWDowOkNa3kL+GZE5Z5GWehL9/A9bRNA3RbrsZ5i0JcastaRL7Sp5fp/jD5dxqc/UdTVnlvS16an+2Yfswe/QuLolRUCrcOE2+2iA5+tzd6NmMGQwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYEFMjFHQBBmiQpMlEk6w2uSu1KBtPsMB8GA1UdIwQYMBaAFMjFHQBBmiQpMlEk6w2uSu1KBtPsMAoGCCqGSM49BAMDA2gAMGUCMH8liWJfMui6vXXBhjDgY4MwslmN/TJxVe/83WrFomwmNf056y1X48F9c4m3a3ozXAIxAKjRay5/aj/jsKKGIkmQatjI8uupHr/+CxFvaJWmpYqNkLDGRU+9orzh5hI2RrcuaQ==").as_bytes().to_vec();
@@ -992,9 +1203,9 @@ mod tests {
     #[tokio::test]
     async fn test_delete_ctlog() {
         let cache_dir = None;
-        let mut trust_root = SigstoreTrustRoot::new(cache_dir)
+        let mut trust_root = SigstoreTrustBundle::new(cache_dir)
             .await
-            .expect("Failed to create SigstoreTrustRoot");
+            .expect("Failed to create SigstoreTrustBundle");
 
         // Add a new ctlog
         let public_key_raw_bytes=String::from("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbfwR+RJudXscgRBRpKX1XFDy3PyudDxz/SfnRi1fT8ekpfBd2O1uoz7jr3Z8nKzxA69EUQ+eFCFI3zeubPWU7w==").as_bytes().to_vec();
