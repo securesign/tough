@@ -128,7 +128,7 @@ async fn rhtas_command_add_new_target() {
     .unwrap();
 
     // Ensure all the targets (new and existing) are accounted for
-    assert_eq!(repo.targets().signed.targets.len(), 5);
+    assert_eq!(repo.targets().signed.targets.len(), 6);
 
     // Ensure we can read the newly added targets
     let ctfe = TargetName::new("ctfe.pub").unwrap();
@@ -201,7 +201,7 @@ async fn rhtas_command_update_target() {
     .unwrap();
 
     // Ensure all the targets (new and existing) are accounted for
-    assert_eq!(repo.targets().signed.targets.len(), 5);
+    assert_eq!(repo.targets().signed.targets.len(), 6);
 
     // // Ensure we can read the newly added targets
     let ctfe = TargetName::new("ctfe.pub").unwrap();
@@ -261,7 +261,7 @@ async fn rhtas_command_update_target() {
     );
 
     // Ensure targets count is unchanged
-    assert_eq!(repo.targets().signed.targets.len(), 5);
+    assert_eq!(repo.targets().signed.targets.len(), 6);
 
     // Revert the target file content to its original state.
     let target_input = fs::File::create(new_targets_input_dir.clone());
@@ -324,7 +324,7 @@ async fn rhtas_command_delete_target() {
     .unwrap();
 
     // Ensure all the targets (new and existing) are accounted for
-    assert_eq!(repo.targets().signed.targets.len(), 5);
+    assert_eq!(repo.targets().signed.targets.len(), 6);
 
     // Delete the target
     Command::cargo_bin("tuftool")
@@ -356,7 +356,7 @@ async fn rhtas_command_delete_target() {
     .unwrap();
 
     // Ensure that one target has been removed
-    assert_eq!(repo.targets().signed.targets.len(), 4);
+    assert_eq!(repo.targets().signed.targets.len(), 5);
 
     // Ensure that the target was removed from repository
     let ctfe = TargetName::new("ctfe.pub").unwrap();
