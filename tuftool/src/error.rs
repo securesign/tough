@@ -99,6 +99,13 @@ pub(crate) enum Error {
         backtrace: Backtrace,
     },
 
+    #[snafu(display("Failed to update timestamp for file {:?}: {}", file, source))]
+    FileTouch {
+        file: PathBuf,
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+
     #[snafu(display("Invalid argument combination: {}", msg))]
     InvalidArgumentCombination { msg: String, backtrace: Backtrace },
 
