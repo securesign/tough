@@ -313,6 +313,12 @@ for file in "${files_to_delete[@]}"; do
     rm -- "$file"
 done
 
+# Remove ununused signing_config.v0.2.json files from ${OUTDIR}/targets
+mapfile -t files_to_delete < <(find "${OUTDIR}/targets/" -type f -name "*.signing_config.v0.2.json" -print0 | xargs -0 ls -t | tail -n +2)
+for file in "${files_to_delete[@]}"; do
+    rm -- "$file"
+done
+
 echo "Setting 644 permissions on public repository files ..."
 find "${OUTDIR}" -type f -exec chmod 644 {} +
 
