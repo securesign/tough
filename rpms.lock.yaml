@@ -158,13 +158,13 @@ arches:
     name: go-srpm-macros
     evr: 3.6.0-11.el9
     sourcerpm: go-rpm-macros-3.6.0-11.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-611.5.1.el9_7.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-611.8.1.el9_7.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 2976877
-    checksum: sha256:8676291b59fcae2ddc25db7050e1b56ad7f0273147767912b26e61b12a4381ff
+    size: 2985529
+    checksum: sha256:c290b18dcacfd513ca4e07279c4e30680345b04da41f85486e0bb107aa12367d
     name: kernel-headers
-    evr: 5.14.0-611.5.1.el9_7
-    sourcerpm: kernel-5.14.0-611.5.1.el9_7.src.rpm
+    evr: 5.14.0-611.8.1.el9_7
+    sourcerpm: kernel-5.14.0-611.8.1.el9_7.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/k/kernel-srpm-macros-1.0-14.el9.noarch.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
     size: 14098
@@ -249,13 +249,13 @@ arches:
     name: openblas-srpm-macros
     evr: 2-11.el9
     sourcerpm: openblas-srpm-macros-2-11.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/o/openssl-devel-3.5.1-3.el9.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/o/openssl-devel-3.5.1-4.el9_7.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 5005858
-    checksum: sha256:5f6f01beb82b6ee4179be44de3a3821dd57c33b28b35385ffa844a96355fa8cf
+    size: 4997984
+    checksum: sha256:3aeba34c9a9c3313b16166111a1dfe61a29ffaff671bb8f0be95eb0e2dede860
     name: openssl-devel
-    evr: 1:3.5.1-3.el9
-    sourcerpm: openssl-3.5.1-3.el9.src.rpm
+    evr: 1:3.5.1-4.el9_7
+    sourcerpm: openssl-3.5.1-4.el9_7.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/p/perl-5.32.1-481.1.el9_6.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
     size: 8429
