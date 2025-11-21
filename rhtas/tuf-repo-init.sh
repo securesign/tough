@@ -313,6 +313,11 @@ for file in "${files_to_delete[@]}"; do
     rm -- "$file"
 done
 
+echo "Setting 644 permissions on public repository files..."
+find "${OUTDIR}" -type f -exec chmod 644 {} +
+
+# test
+ls -Rla "${OUTDIR}"
 
 echo "Copying the TUF repository to final location ${TUF_REPO_PATH} ..."
 # TODO: fix this based on changes in layout of tuftool output
