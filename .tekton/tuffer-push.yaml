@@ -37,6 +37,8 @@ spec:
     value: "true"
   - name: dev-package-managers
     value: "true"
+  - name: fips-check
+    value: "true"
   pipelineRef:
     params:
     - name: url
