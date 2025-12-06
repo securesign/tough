@@ -267,8 +267,8 @@ if [ -n "${REKOR_KEY}" ]; then
     --key "${KEYDIR}/snapshot.pem" \
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
-    --set-rekor-target "${REKOR_URI}" \
-    --rekor-uri "https://rekor.rhtas" \
+    --set-rekor-target "${REKOR_KEY}" \
+    --rekor-uri "${REKOR_URI}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
