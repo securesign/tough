@@ -18,14 +18,26 @@ Options:
   --fulcio-cert
     Fulcio certificate chain file
 
+  --fulcio-uri
+    Fulcio base URI
+
   --tsa-cert
     TSA certificate chain file
+
+  --tsa-uri
+    TSA base URI
 
   --ctlog-key
     CTLog public key file
 
+  --ctlog-uri
+    CTLog base URI
+
   --rekor-key
     Rekor public key file
+
+  --rekor-uri
+    Rekor base URI
 
   --metadata-expiration
     Tuftool-compatible tetadata expiration time; defaults to 56 weeks
@@ -38,6 +50,10 @@ export FULCIO_CERT=""
 export TSA_CERT=""
 export CTLOG_KEY=""
 export REKOR_KEY=""
+export FULCIO_URI=""
+export TSA_URI=""
+export CTLOG_URI=""
+export REKOR_URI=""
 export METADATA_EXPIRATION="in 52 weeks"
 
 while [[ $# -gt 0 ]]; do
@@ -57,8 +73,18 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    --fulcio-uri)
+      FULCIO_URI="$2"
+      shift
+      shift
+      ;;
     --tsa-cert)
       TSA_CERT="$2"
+      shift
+      shift
+      ;;
+    --tsa-uri)
+      TSA_URI="$2"
       shift
       shift
       ;;
@@ -67,8 +93,18 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    --ctlog-uri)
+      CTLOG_URI="$2"
+      shift
+      shift
+      ;;
     --rekor-key)
       REKOR_KEY="$2"
+      shift
+      shift
+      ;;
+    --rekor-uri)
+      REKOR_URI="$2"
       shift
       shift
       ;;
@@ -169,7 +205,7 @@ if [ -n "${FULCIO_CERT}" ]; then
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
     --set-fulcio-target "${FULCIO_CERT}" \
-    --fulcio-uri "https://fulcio.rhtas" \
+    --fulcio-uri "${FULCIO_URI}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -190,7 +226,7 @@ if [ -n "${TSA_CERT}" ]; then
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
     --set-tsa-target "${TSA_CERT}" \
-    --tsa-uri "https://tsa.rhtas" \
+    --tsa-uri "${TSA_URI}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -211,7 +247,7 @@ if [ -n "${CTLOG_KEY}" ]; then
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
     --set-ctlog-target "${CTLOG_KEY}" \
-    --ctlog-uri "https://ctlog.rhtas" \
+    --ctlog-uri "${CTLOG_URI}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -232,7 +268,7 @@ if [ -n "${REKOR_KEY}" ]; then
     --key "${KEYDIR}/targets.pem" \
     --key "${KEYDIR}/timestamp.pem" \
     --set-rekor-target "${REKOR_KEY}" \
-    --rekor-uri "https://rekor.rhtas" \
+    --rekor-uri "${REKOR_URI}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
