@@ -48,7 +48,6 @@ simplelog = "0.12"
 sigstore_protobuf_specs = { version = "0.4", default-features = false, optional = true }
 
 snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
-sha2 = "0.9"
 pem = "3.0.4"
 prost-types = "0.13.5"
 tempfile = "3"

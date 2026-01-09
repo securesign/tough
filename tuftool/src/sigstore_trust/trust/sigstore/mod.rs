@@ -21,7 +21,7 @@
 //! These can later be given to [`cosign::ClientBuilder`](crate::cosign::ClientBuilder)
 //! to enable Fulcio and Rekor integrations.
 use futures_util::TryStreamExt;
-use sha2::{Digest, Sha256};
+use openssl::sha::sha256;
 use std::path::Path;
 use tokio_util::bytes::BytesMut;
 
@@ -169,7 +169,7 @@ impl SigstoreTrustBundle {
             )));
         };
 
-        let data = if Sha256::digest(&data)[..] == target.hashes.sha256[..] {
+        let data = if sha256(&data)[..] == target.hashes.sha256[..] {
             data
         } else {
             debug!("{}: out of date", name.raw());

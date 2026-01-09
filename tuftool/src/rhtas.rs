@@ -15,10 +15,10 @@ use openssl::ec::EcKey;
 use openssl::nid::Nid;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
+use openssl::sha::sha256;
 use prost_types::Timestamp;
 use serde_json::json;
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::{
         DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
@@ -748,10 +748,7 @@ impl RhtasArgs {
 
             let ctlog_raw_bytes = ctlog_raw_bytes_vec[0].clone();
 
-            let mut hasher = Sha256::new();
-            hasher.update(ctlog_raw_bytes.clone());
-            let hash_result = hasher.finalize();
-            let key_id = hash_result.to_vec();
+            let key_id = sha256(&ctlog_raw_bytes).to_vec();
 
             #[allow(clippy::cast_possible_wrap)]
             let current_timestamp = SystemTime::now()
@@ -837,10 +834,7 @@ impl RhtasArgs {
 
             let rekor_raw_bytes = rekor_raw_bytes_vec[0].clone();
 
-            let mut hasher = Sha256::new();
-            hasher.update(rekor_raw_bytes.clone());
-            let hash_result = hasher.finalize();
-            let key_id = hash_result.to_vec();
+            let key_id = sha256(&rekor_raw_bytes).to_vec();
 
             #[allow(clippy::cast_possible_wrap)]
             let current_timestamp = SystemTime::now()
