@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - "rhtas/*.sh"
-    branches: [develop]
+    branches: [release-1.2]
 
 jobs:
   shellcheck:
