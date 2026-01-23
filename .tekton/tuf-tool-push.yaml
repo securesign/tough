@@ -14,8 +14,8 @@ metadata:
       )
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: tough
-    appstudio.openshift.io/component: tuf-tool
+    appstudio.openshift.io/application: tough-v1-2
+    appstudio.openshift.io/component: tuf-tool-v1-2
     pipelines.appstudio.openshift.io/type: build
   name: tuf-tool-on-push
   namespace: rhtas-tenant
