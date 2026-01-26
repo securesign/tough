@@ -19,7 +19,6 @@ use openssl::sha::sha256;
 use prost_types::Timestamp;
 use serde_json::from_reader;
 use serde_json::json;
-use serde_json::Value;
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::{
         DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
