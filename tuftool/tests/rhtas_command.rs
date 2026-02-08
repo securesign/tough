@@ -405,6 +405,27 @@ async fn rhtas_command_argument_validation() {
         ])
         .assert()
         .failure();
+
+    // oidc-uri with ctlog-target should also fail (oidc is only valid with fulcio-target)
+    Command::cargo_bin("tuftool")
+        .unwrap()
+        .args([
+            "rhtas",
+            "-o",
+            repo_dir.to_str().unwrap(),
+            "-k",
+            root_key.to_str().unwrap(),
+            "--root",
+            root_json.to_str().unwrap(),
+            "--set-ctlog-target",
+            new_targets_input_dir.to_str().unwrap(),
+            "--oidc-uri",
+            "https://oauth2.sigstore.dev/auth",
+            "--metadata-url",
+            metadata_base_url.as_str(),
+        ])
+        .assert()
+        .failure();
 }
 
 #[tokio::test]
@@ -479,4 +500,85 @@ async fn rhtas_command_force_metadata_version() {
     assert_eq!(repo.snapshot().signed.version.get(), new_snapshot_version);
     assert_eq!(repo.timestamp().signed.expires, new_timestamp_expiration);
     assert_eq!(repo.timestamp().signed.version.get(), new_timestamp_version);
+}
+
+#[tokio::test]
+#[serial]
+async fn rhtas_command_fulcio_oidc_signing_config() {
+    let root_json = test_utils::test_data().join("simple-rsa").join("root.json");
+    let root_key = test_utils::test_data().join("snakeoil.pem");
+    let repo_dir = test_utils::test_data().join("rhtas_tmp");
+
+    let _cleanup = TestRepoCleanup::new(repo_dir.clone());
+
+    create_repo(repo_dir.clone());
+
+    let fulcio_cert = test_utils::test_data()
+        .join("rhtas-targets")
+        .join("fulcio-cert");
+    let metadata_base_url = &dir_url(&repo_dir);
+
+    // Add Fulcio target with OIDC URI - this should populate signing_config with oidcUrls
+    Command::cargo_bin("tuftool")
+        .unwrap()
+        .args([
+            "rhtas",
+            "-o",
+            repo_dir.to_str().unwrap(),
+            "-k",
+            root_key.to_str().unwrap(),
+            "--root",
+            root_json.to_str().unwrap(),
+            "--set-fulcio-target",
+            fulcio_cert.to_str().unwrap(),
+            "--fulcio-uri",
+            "https://fulcio.test.example",
+            "--oidc-uri",
+            "https://oauth2.test.example/auth",
+            "--metadata-url",
+            metadata_base_url.as_str(),
+        ])
+        .assert()
+        .success();
+
+    // Load the repo and verify signing_config contains oidcUrls
+    let repo = RepositoryLoader::new(
+        &tokio::fs::read(root_json.clone()).await.unwrap(),
+        dir_url(&repo_dir),
+        dir_url(repo_dir.join("targets")),
+    )
+    .load()
+    .await
+    .unwrap();
+
+    // Find signing_config target (may be hashed or direct)
+    let signing_config_name = repo
+        .targets()
+        .signed
+        .targets
+        .keys()
+        .find(|k| k.raw().contains("signing_config"))
+        .expect("signing_config target should exist");
+
+    let signing_config_data = test_utils::read_to_end(
+        repo.read_target(signing_config_name)
+            .await
+            .unwrap()
+            .unwrap(),
+    )
+    .await;
+    let signing_config: serde_json::Value =
+        serde_json::from_slice(&signing_config_data).expect("signing_config should be valid JSON");
+
+    let oidc_urls = signing_config
+        .get("oidcUrls")
+        .expect("signing_config should contain oidcUrls");
+    let oidc_urls = oidc_urls.as_array().expect("oidcUrls should be an array");
+    assert!(!oidc_urls.is_empty(), "oidcUrls should not be empty");
+    let first_oidc = &oidc_urls[0];
+    assert_eq!(
+        first_oidc.get("url").and_then(|v| v.as_str()),
+        Some("https://oauth2.test.example/auth"),
+        "OIDC URL should match"
+    );
 }

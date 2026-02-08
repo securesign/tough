@@ -213,6 +213,38 @@ impl SigstoreTrustBundle {
         std::fs::write(file_path, json).map_err(SigstoreError::from)
     }
 
+    /// Add an OIDC URL to the `SigningConfig` (used with Fulcio).
+    /// The `SigningConfig` must already exist (it is created when adding the Fulcio CA target).
+    pub fn add_oidc_url_to_signing_config(
+        &mut self,
+        url: String,
+        valid_for: Option<TimeRange>,
+        operator: String,
+    ) -> Result<()> {
+        let Some(signing_config) = &mut self.signing_config else {
+            return Err(SigstoreError::UnexpectedError(
+                "Cannot add OIDC URL: signing_config does not exist (add Fulcio target first)"
+                    .to_string(),
+            ));
+        };
+
+        let operator = if operator.is_empty() {
+            "sigstore.dev".to_string()
+        } else {
+            operator
+        };
+        signing_config
+            .oidc_urls
+            .retain(|service| service.url != url);
+        signing_config.oidc_urls.push(Service {
+            url,
+            major_api_version: 1,
+            valid_for,
+            operator,
+        });
+        Ok(())
+    }
+
     /// Save the signing config to a file
     pub fn save_signing_config_to_file(&self, file_path: &Path) -> Result<()> {
         if let Some(signing_config) = &self.signing_config {
@@ -712,6 +744,7 @@ impl SigstoreTrustBundle {
         match target_type {
             Target::CertificateAuthority => {
                 signing_config.ca_urls.retain(|svc| svc.url != uri);
+                signing_config.oidc_urls.retain(|svc| svc.url != uri);
             }
             Target::Tlog => {
                 signing_config.rekor_tlog_urls.retain(|svc| svc.url != uri);
