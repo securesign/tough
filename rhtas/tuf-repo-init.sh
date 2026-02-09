@@ -21,6 +21,9 @@ Options:
   --fulcio-uri
     Fulcio base URI
 
+  --oidc-uri
+    OIDC provider URI (used with Fulcio for authentication)
+
   --tsa-cert
     TSA certificate chain file
 
@@ -51,6 +54,7 @@ export TSA_CERT=""
 export CTLOG_KEY=""
 export REKOR_KEY=""
 export FULCIO_URI=""
+export OIDC_URI=""
 export TSA_URI=""
 export CTLOG_URI=""
 export REKOR_URI=""
@@ -75,6 +79,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --fulcio-uri)
       FULCIO_URI="$2"
+      shift
+      shift
+      ;;
+    --oidc-uri)
+      OIDC_URI="$2"
       shift
       shift
       ;;
@@ -206,6 +215,7 @@ if [ -n "${FULCIO_CERT}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-fulcio-target "${FULCIO_CERT}" \
     --fulcio-uri "${FULCIO_URI}" \
+    --oidc-uri "${OIDC_URI}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \

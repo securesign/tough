@@ -36,12 +36,13 @@ jobs:
           ./rhtas/tuf-repo-init.sh --export-keys file:///tmp/exported-keys \
             --fulcio-cert ./rhtas/test/fulcio-cert \
             --fulcio-uri "https://fulcio.rhtas" \
+            --oidc-uri "https://oauth2.rhtas/auth" \
             --tsa-cert ./rhtas/test/tsa-chain \
             --tsa-uri "https://tsa.rhtas" \
             --ctlog-key ./rhtas/test/ctfe-pubkey \
-            --fulcio-uri "https://ctlog.rhtas" \
+            --ctlog-uri "https://ctlog.rhtas" \
             --rekor-key ./rhtas/test/rekor-pubkey \
-            --fulcio-uri "https://rekor.rhtas" \
+            --rekor-uri "https://rekor.rhtas" \
             /tmp/testrepo
       - run: curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && mv cosign-linux-amd64 ${HOME}/.local/bin/cosign && sudo chmod +x ${HOME}/.local/bin/cosign
       - run: cosign -d initialize --mirror=file:///tmp/testrepo --root=/tmp/testrepo/root.json

@@ -109,6 +109,11 @@ pub(crate) struct RhtasArgs {
     #[arg(long)]
     fulcio_uri: Option<String>,
 
+    /// URI for the OIDC provider (used with Fulcio).
+    /// Example: <https://oauth2.sigstore.dev/auth>
+    #[arg(long)]
+    oidc_uri: Option<String>,
+
     /// Path to the new Ctlog target file
     #[arg(long = "set-ctlog-target")]
     ctlog_target: Option<PathBuf>,
@@ -677,6 +682,11 @@ impl RhtasArgs {
                 start = None;
             }
 
+            let valid_for = Some(TimeRange {
+                start: start.clone(),
+                end: end.clone(),
+            });
+
             let mut certificates: Vec<X509Certificate> = Vec::new();
             for item in certificate_raw_bytes_vec {
                 certificates.push(X509Certificate { raw_bytes: item });
@@ -689,7 +699,7 @@ impl RhtasArgs {
                 }),
                 uri: self.fulcio_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
-                valid_for: Some(TimeRange { start, end }),
+                valid_for: valid_for.clone(),
                 operator: String::new(),
             };
 
@@ -699,6 +709,16 @@ impl RhtasArgs {
                 Ok(()) => {}
                 Err(e) => {
                     eprintln!("Failed to set target: {e:?} in trust_bundle");
+                }
+            }
+
+            if let Some(ref oidc_uri) = self.oidc_uri {
+                if let Err(e) = trust_bundle.add_oidc_url_to_signing_config(
+                    oidc_uri.clone(),
+                    valid_for,
+                    "sigstore.dev".to_string(),
+                ) {
+                    eprintln!("Failed to add OIDC URL to signing_config: {e:?}");
                 }
             }
         }
@@ -1089,7 +1109,7 @@ impl RhtasArgs {
                 || self.tsa_status.is_some())
         {
             return error::InvalidArgumentCombinationSnafu {
-                msg: "--set-fulcio-target only accepts --fulcio-uri and --fulcio-status."
+                msg: "--set-fulcio-target only accepts --fulcio-uri, --fulcio-status, and --oidc-uri."
                     .to_string(),
             }
             .fail();
@@ -1097,6 +1117,7 @@ impl RhtasArgs {
 
         if self.ctlog_target.is_some()
             && (self.fulcio_uri.is_some()
+                || self.oidc_uri.is_some()
                 || self.rekor_uri.is_some()
                 || self.tsa_uri.is_some()
                 || self.fulcio_status.is_some()
@@ -1111,6 +1132,7 @@ impl RhtasArgs {
 
         if self.rekor_target.is_some()
             && (self.fulcio_uri.is_some()
+                || self.oidc_uri.is_some()
                 || self.ctlog_uri.is_some()
                 || self.tsa_uri.is_some()
                 || self.fulcio_status.is_some()
@@ -1125,6 +1147,7 @@ impl RhtasArgs {
 
         if self.tsa_target.is_some()
             && (self.fulcio_uri.is_some()
+                || self.oidc_uri.is_some()
                 || self.ctlog_uri.is_some()
                 || self.rekor_uri.is_some()
                 || self.fulcio_status.is_some()
@@ -1143,6 +1166,9 @@ impl RhtasArgs {
             }
             if self.fulcio_status.is_none() {
                 self.fulcio_status = Some(String::from("Active"));
+            }
+            if self.oidc_uri.is_none() {
+                self.oidc_uri = Some(String::from("https://oauth2.sigstore.dev/auth"));
             }
         }
         if self.ctlog_target.is_some() {
