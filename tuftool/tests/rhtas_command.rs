@@ -513,9 +513,9 @@ async fn rhtas_command_fulcio_oidc_signing_config() {
 
     create_repo(repo_dir.clone());
 
-    let fulcio_cert = test_utils::test_data()
-        .join("rhtas-targets")
-        .join("fulcio-cert");
+    let mut fulcio_cert = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    fulcio_cert.pop();
+    fulcio_cert.push("rhtas/test/fulcio-cert");
     let metadata_base_url = &dir_url(&repo_dir);
 
     // Add Fulcio target with OIDC URI - this should populate signing_config with oidcUrls
