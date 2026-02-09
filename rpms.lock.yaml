@@ -11,27 +11,20 @@ arches:
     name: cargo
     evr: 1.88.0-1.el9
     sourcerpm: rust-1.88.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-3.26.5-2.el9.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-3.26.5-3.el9_7.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 9159462
-    checksum: sha256:f553370cb02b87e7388697468256556e765b102c2fcb56be6bc250cb2351e8ad
+    size: 9138295
+    checksum: sha256:b633e1bff169d2965bb40c3a5e1e0260f0ddd64ea8cb5fa61bc213eb070be869
     name: cmake
-    evr: 3.26.5-2.el9
-    sourcerpm: cmake-3.26.5-2.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-data-3.26.5-2.el9.noarch.rpm
+    evr: 3.26.5-3.el9_7
+    sourcerpm: cmake-3.26.5-3.el9_7.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-data-3.26.5-3.el9_7.noarch.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 2488227
-    checksum: sha256:84da65a7b8921f031d15903d91c5967022620f9e96b7493c8ab8024014755ee7
+    size: 2483069
+    checksum: sha256:6b8afdf96d315c36df391e0f170d5ba845d11704549c4ffa3533aa43922d722e
     name: cmake-data
-    evr: 3.26.5-2.el9
-    sourcerpm: cmake-3.26.5-2.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-rpm-macros-3.26.5-2.el9.noarch.rpm
-    repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 12250
-    checksum: sha256:1c74969c8a4f21851f5b89f25ac55c689b75bed1318d0435fc3a14a49c39d0e3
-    name: cmake-rpm-macros
-    evr: 3.26.5-2.el9
-    sourcerpm: cmake-3.26.5-2.el9.src.rpm
+    evr: 3.26.5-3.el9_7
+    sourcerpm: cmake-3.26.5-3.el9_7.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cyrus-sasl-devel-2.1.27-22.el9.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
     size: 113776
