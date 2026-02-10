@@ -25,4 +25,4 @@ LABEL io.k8s.display-name="Tuffer container image for Red Hat Trusted Artifact S
 LABEL io.openshift.tags="Tuffer Trusted Artifact Signer"
 LABEL summary="Provides the tuf-repo-init script for generating an initial trust root for RHTAS"
 LABEL com.redhat.component="tuffer"
-LABEL name="tuffer"
+LABEL name="rhtas/tuffer-rhel9"
