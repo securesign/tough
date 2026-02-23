@@ -665,8 +665,8 @@ impl RhtasArgs {
                     key_details: key_details.unwrap(),
                     valid_for: Some(TimeRange { start, end }),
                 }),
-                checkpoint_key_id: Some(LogId { key_id }),
-                log_id: None,
+                log_id: Some(LogId { key_id }),
+                checkpoint_key_id: None,
                 operator: String::new(),
             };
 
@@ -751,8 +751,8 @@ impl RhtasArgs {
                     key_details: key_details.unwrap(),
                     valid_for: Some(TimeRange { start, end }),
                 }),
-                checkpoint_key_id: Some(LogId { key_id }),
-                log_id: None,
+                log_id: Some(LogId { key_id }),
+                checkpoint_key_id: None,
                 operator: String::new(),
             };
 
