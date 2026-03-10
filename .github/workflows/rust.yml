@@ -40,7 +40,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v5
       # print the current rustc. replace stable to pin to a specific toolchain version.
       # - run: rustup default stable
-      - run: rustup default 1.84.0
+      - run: rustup default 1.94.0
       - run: rustup component add rustfmt
       - run: rustup component add clippy
       - name: Install CMake 3.x (Ubuntu)
