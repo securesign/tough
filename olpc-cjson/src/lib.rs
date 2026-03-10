@@ -106,7 +106,6 @@ impl CanonicalFormatter {
     fn obj_mut(&mut self) -> Result<&mut Object> {
         self.object_stack.last_mut().ok_or_else(|| {
             Error::other("serde_json called an object method without calling begin_object first")
-                
         })
     }
 }
