@@ -21,7 +21,7 @@ LABEL summary="Provides tuftool CLI binary as tar.gz archive for CDN distributio
 LABEL com.redhat.component="tuftool-cli-stack"
 
 COPY --from=packager /binaries/ /binaries/
-COPY --from=build-amd64 /licenses/ /licenses/
+COPY licenses/LICENSE-APACHE /licenses/license.txt
 
 RUN chown -R root:0 /binaries && chmod -R g+r /binaries
 
