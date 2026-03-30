@@ -10,6 +10,9 @@ RUN cd /tmp/tuftool && cargo build --release --features fips
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:f5346fbb587b72b5376e66272935d22c62af78be2e8ea1dcf3e9e46865a9a2ee as deploy
 
+RUN microdnf -y --setopt=tsflags=nodocs --setopt=install_weak_deps=0 install openssl && \
+    microdnf -y clean all
+
 COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 COPY licenses/LICENSE-APACHE /licenses/license.txt
 
