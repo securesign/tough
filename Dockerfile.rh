@@ -1,16 +1,14 @@
-FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:0f4f6f7868962aa75dddfe4230b664bdf77071e92c43c70c824c58450e37693f as builder
-ENV CGO_ENABLED=1 \
-    GOEXPERIMENT=strictfipsruntime
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:f5346fbb587b72b5376e66272935d22c62af78be2e8ea1dcf3e9e46865a9a2ee as builder
 
-USER root
-
-RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo
+RUN microdnf -y --setopt=tsflags=nodocs --setopt=install_weak_deps=0 install \
+    perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo golang && \
+    microdnf -y clean all
 
 RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
 RUN cd /tmp/tuftool && cargo build --release --features fips
 
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:9e6e193bfc3596a84d2a32f42d6b1552398ec9735b9a4e893a0fc3c6fbccb381 as deploy
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:f5346fbb587b72b5376e66272935d22c62af78be2e8ea1dcf3e9e46865a9a2ee as deploy
 
 COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 COPY licenses/LICENSE-APACHE /licenses/license.txt
