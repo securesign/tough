@@ -16,6 +16,7 @@ use openssl::nid::Nid;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::sha::sha256;
+use openssl::x509::X509;
 use prost_types::Timestamp;
 use serde_json::json;
 use serde_json::Value;
@@ -155,14 +156,6 @@ pub(crate) struct RhtasArgs {
     /// Operator name for the signing config services
     #[arg(long, default_value = "sigstore.dev")]
     operator: String,
-
-    /// Organization name used in certificate authority subjects
-    #[arg(long, default_value = "sigstore.dev")]
-    organization: String,
-
-    /// Common name used in certificate authority subjects
-    #[arg(long, default_value = "sigstore")]
-    common_name: String,
 
     /// Expiration of targets.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
@@ -704,11 +697,10 @@ impl RhtasArgs {
                 certificates.push(X509Certificate { raw_bytes: item });
             }
 
+            let subject = RhtasArgs::extract_subject_from_cert(fulcio_target_path);
+
             let new_ca = CertificateAuthority {
-                subject: Some(DistinguishedName {
-                    organization: self.organization.clone(),
-                    common_name: self.common_name.clone(),
-                }),
+                subject: Some(subject),
                 uri: self.fulcio_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: valid_for.clone(),
@@ -965,11 +957,10 @@ impl RhtasArgs {
                 certificates.push(X509Certificate { raw_bytes: item });
             }
 
+            let subject = RhtasArgs::extract_subject_from_cert(tsa_target_path);
+
             let new_tsa = CertificateAuthority {
-                subject: Some(DistinguishedName {
-                    organization: self.organization.clone(),
-                    common_name: self.common_name.clone(),
-                }),
+                subject: Some(subject),
                 uri: self.tsa_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
@@ -1296,6 +1287,44 @@ impl RhtasArgs {
             io::ErrorKind::InvalidData,
             "Invalid public key format or unsupported key type",
         ))
+    }
+
+    fn extract_subject_from_cert(target_path: &Path) -> DistinguishedName {
+        let empty = || DistinguishedName {
+            organization: String::new(),
+            common_name: String::new(),
+        };
+
+        let Ok(mut file) = File::open(target_path) else {
+            return empty();
+        };
+        let mut buffer = Vec::new();
+        if file.read_to_end(&mut buffer).is_err() {
+            return empty();
+        }
+
+        let Ok(cert) = X509::from_pem(&buffer) else {
+            return empty();
+        };
+
+        let subject = cert.subject_name();
+        let organization = subject
+            .entries_by_nid(Nid::ORGANIZATIONNAME)
+            .next()
+            .and_then(|e| e.data().as_utf8().ok())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        let common_name = subject
+            .entries_by_nid(Nid::COMMONNAME)
+            .next()
+            .and_then(|e| e.data().as_utf8().ok())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+
+        DistinguishedName {
+            organization,
+            common_name,
+        }
     }
 
     fn load_target_der_bytes(target_path: &Path) -> io::Result<Vec<Vec<u8>>> {
