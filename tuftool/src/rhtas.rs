@@ -152,6 +152,18 @@ pub(crate) struct RhtasArgs {
     #[arg(long)]
     tsa_uri: Option<String>,
 
+    /// Operator name for the signing config services
+    #[arg(long, default_value = "sigstore.dev")]
+    operator: String,
+
+    /// Organization name used in certificate authority subjects
+    #[arg(long, default_value = "sigstore.dev")]
+    organization: String,
+
+    /// Common name used in certificate authority subjects
+    #[arg(long, default_value = "sigstore")]
+    common_name: String,
+
     /// Expiration of targets.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
     #[arg(long, value_parser = parse_datetime)]
@@ -694,13 +706,13 @@ impl RhtasArgs {
 
             let new_ca = CertificateAuthority {
                 subject: Some(DistinguishedName {
-                    organization: "sigstore.dev".to_string(),
-                    common_name: "sigstore".to_string(),
+                    organization: self.organization.clone(),
+                    common_name: self.common_name.clone(),
                 }),
                 uri: self.fulcio_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: valid_for.clone(),
-                operator: String::new(),
+                operator: self.operator.clone(),
             };
 
             match trust_bundle
@@ -716,7 +728,7 @@ impl RhtasArgs {
                 if let Err(e) = trust_bundle.add_oidc_url_to_signing_config(
                     oidc_uri.clone(),
                     valid_for,
-                    "sigstore.dev".to_string(),
+                    self.operator.clone(),
                 ) {
                     eprintln!("Failed to add OIDC URL to signing_config: {e:?}");
                 }
@@ -798,7 +810,7 @@ impl RhtasArgs {
                 }),
                 log_id: Some(LogId { key_id }),
                 checkpoint_key_id: None,
-                operator: String::new(),
+                operator: self.operator.clone(),
             };
 
             match trust_bundle.set_target(TargetType::Log(new_ctlog), Target::Ctlog) {
@@ -884,7 +896,7 @@ impl RhtasArgs {
                 }),
                 log_id: Some(LogId { key_id }),
                 checkpoint_key_id: None,
-                operator: String::new(),
+                operator: self.operator.clone(),
             };
 
             match trust_bundle.set_target(TargetType::Log(new_tlog), Target::Tlog) {
@@ -955,13 +967,13 @@ impl RhtasArgs {
 
             let new_tsa = CertificateAuthority {
                 subject: Some(DistinguishedName {
-                    organization: "sigstore.dev".to_string(),
-                    common_name: "sigstore".to_string(),
+                    organization: self.organization.clone(),
+                    common_name: self.common_name.clone(),
                 }),
                 uri: self.tsa_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
                 valid_for: Some(TimeRange { start, end }),
-                operator: String::new(),
+                operator: self.operator.clone(),
             };
 
             match trust_bundle
