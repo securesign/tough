@@ -1290,31 +1290,21 @@ impl RhtasArgs {
     }
 
     fn extract_subject_from_cert(target_path: &Path) -> DistinguishedName {
-        let mut file = match File::open(target_path) {
-            Ok(f) => f,
-            Err(_) => {
-                return DistinguishedName {
-                    organization: String::new(),
-                    common_name: String::new(),
-                }
-            }
+        let empty = || DistinguishedName {
+            organization: String::new(),
+            common_name: String::new(),
+        };
+
+        let Ok(mut file) = File::open(target_path) else {
+            return empty();
         };
         let mut buffer = Vec::new();
         if file.read_to_end(&mut buffer).is_err() {
-            return DistinguishedName {
-                organization: String::new(),
-                common_name: String::new(),
-            };
+            return empty();
         }
 
-        let cert = match X509::from_pem(&buffer) {
-            Ok(c) => c,
-            Err(_) => {
-                return DistinguishedName {
-                    organization: String::new(),
-                    common_name: String::new(),
-                }
-            }
+        let Ok(cert) = X509::from_pem(&buffer) else {
+            return empty();
         };
 
         let subject = cert.subject_name();
