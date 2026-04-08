@@ -156,6 +156,14 @@ pub(crate) struct RhtasArgs {
     #[arg(long, default_value = "sigstore.dev")]
     operator: String,
 
+    /// Organization name used in certificate authority subjects
+    #[arg(long, default_value = "sigstore.dev")]
+    organization: String,
+
+    /// Common name used in certificate authority subjects
+    #[arg(long, default_value = "sigstore")]
+    common_name: String,
+
     /// Expiration of targets.json file; can be in full RFC 3339 format, or something like 'in
     /// 7 days'
     #[arg(long, value_parser = parse_datetime)]
@@ -698,8 +706,8 @@ impl RhtasArgs {
 
             let new_ca = CertificateAuthority {
                 subject: Some(DistinguishedName {
-                    organization: self.operator.clone(),
-                    common_name: self.operator.clone(),
+                    organization: self.organization.clone(),
+                    common_name: self.common_name.clone(),
                 }),
                 uri: self.fulcio_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
@@ -959,8 +967,8 @@ impl RhtasArgs {
 
             let new_tsa = CertificateAuthority {
                 subject: Some(DistinguishedName {
-                    organization: self.operator.clone(),
-                    common_name: self.operator.clone(),
+                    organization: self.organization.clone(),
+                    common_name: self.common_name.clone(),
                 }),
                 uri: self.tsa_uri.clone().unwrap(),
                 cert_chain: Some(X509CertificateChain { certificates }),
