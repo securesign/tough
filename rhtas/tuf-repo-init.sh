@@ -44,6 +44,9 @@ Options:
 
   --metadata-expiration
     Tuftool-compatible tetadata expiration time; defaults to 56 weeks
+
+  --operator
+    Operator name for signing config services; defaults to "rhtas"
 EOF
 }
 
@@ -59,6 +62,7 @@ export TSA_URI=""
 export CTLOG_URI=""
 export REKOR_URI=""
 export METADATA_EXPIRATION="in 52 weeks"
+export OPERATOR="rhtas"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -119,6 +123,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --metadata-expiration)
       METADATA_EXPIRATION="$2"
+      shift
+      shift
+      ;;
+    --operator)
+      OPERATOR="$2"
       shift
       shift
       ;;
@@ -216,6 +225,7 @@ if [ -n "${FULCIO_CERT}" ]; then
     --set-fulcio-target "${FULCIO_CERT}" \
     --fulcio-uri "${FULCIO_URI}" \
     --oidc-uri "${OIDC_URI}" \
+    --operator "${OPERATOR}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -237,6 +247,7 @@ if [ -n "${TSA_CERT}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-tsa-target "${TSA_CERT}" \
     --tsa-uri "${TSA_URI}" \
+    --operator "${OPERATOR}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -258,6 +269,7 @@ if [ -n "${CTLOG_KEY}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-ctlog-target "${CTLOG_KEY}" \
     --ctlog-uri "${CTLOG_URI}" \
+    --operator "${OPERATOR}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -279,6 +291,7 @@ if [ -n "${REKOR_KEY}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-rekor-target "${REKOR_KEY}" \
     --rekor-uri "${REKOR_URI}" \
+    --operator "${OPERATOR}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
