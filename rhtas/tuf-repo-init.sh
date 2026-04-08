@@ -47,12 +47,6 @@ Options:
 
   --operator
     Operator name for signing config services; defaults to "rhtas"
-
-  --organization
-    Organization name in certificate authority subjects; defaults to "rhtas"
-
-  --common-name
-    Common name in certificate authority subjects; defaults to "rhtas"
 EOF
 }
 
@@ -69,8 +63,6 @@ export CTLOG_URI=""
 export REKOR_URI=""
 export METADATA_EXPIRATION="in 52 weeks"
 export OPERATOR="rhtas"
-export ORGANIZATION="rhtas"
-export COMMON_NAME="rhtas"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -136,16 +128,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --operator)
       OPERATOR="$2"
-      shift
-      shift
-      ;;
-    --organization)
-      ORGANIZATION="$2"
-      shift
-      shift
-      ;;
-    --common-name)
-      COMMON_NAME="$2"
       shift
       shift
       ;;
@@ -244,8 +226,6 @@ if [ -n "${FULCIO_CERT}" ]; then
     --fulcio-uri "${FULCIO_URI}" \
     --oidc-uri "${OIDC_URI}" \
     --operator "${OPERATOR}" \
-    --organization "${ORGANIZATION}" \
-    --common-name "${COMMON_NAME}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -268,8 +248,6 @@ if [ -n "${TSA_CERT}" ]; then
     --set-tsa-target "${TSA_CERT}" \
     --tsa-uri "${TSA_URI}" \
     --operator "${OPERATOR}" \
-    --organization "${ORGANIZATION}" \
-    --common-name "${COMMON_NAME}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -292,8 +270,6 @@ if [ -n "${CTLOG_KEY}" ]; then
     --set-ctlog-target "${CTLOG_KEY}" \
     --ctlog-uri "${CTLOG_URI}" \
     --operator "${OPERATOR}" \
-    --organization "${ORGANIZATION}" \
-    --common-name "${COMMON_NAME}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
@@ -316,8 +292,6 @@ if [ -n "${REKOR_KEY}" ]; then
     --set-rekor-target "${REKOR_KEY}" \
     --rekor-uri "${REKOR_URI}" \
     --operator "${OPERATOR}" \
-    --organization "${ORGANIZATION}" \
-    --common-name "${COMMON_NAME}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \
     --snapshot-expires "${METADATA_EXPIRATION}" \
