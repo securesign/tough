@@ -110,10 +110,10 @@ pub(crate) struct RhtasArgs {
     #[arg(long)]
     fulcio_uri: Option<String>,
 
-    /// URI for the OIDC provider (used with Fulcio).
+    /// URI for the OIDC provider (used with Fulcio). Can be specified multiple times.
     /// Example: <https://oauth2.sigstore.dev/auth>
     #[arg(long)]
-    oidc_uri: Option<String>,
+    oidc_uri: Vec<String>,
 
     /// Path to the new Ctlog target file
     #[arg(long = "set-ctlog-target")]
@@ -716,10 +716,10 @@ impl RhtasArgs {
                 }
             }
 
-            if let Some(ref oidc_uri) = self.oidc_uri {
+            for oidc_uri in &self.oidc_uri {
                 if let Err(e) = trust_bundle.add_oidc_url_to_signing_config(
                     oidc_uri.clone(),
-                    valid_for,
+                    valid_for.clone(),
                     self.operator.clone(),
                 ) {
                     eprintln!("Failed to add OIDC URL to signing_config: {e:?}");
@@ -1120,7 +1120,7 @@ impl RhtasArgs {
 
         if self.ctlog_target.is_some()
             && (self.fulcio_uri.is_some()
-                || self.oidc_uri.is_some()
+                || !self.oidc_uri.is_empty()
                 || self.rekor_uri.is_some()
                 || self.tsa_uri.is_some()
                 || self.fulcio_status.is_some()
@@ -1135,7 +1135,7 @@ impl RhtasArgs {
 
         if self.rekor_target.is_some()
             && (self.fulcio_uri.is_some()
-                || self.oidc_uri.is_some()
+                || !self.oidc_uri.is_empty()
                 || self.ctlog_uri.is_some()
                 || self.tsa_uri.is_some()
                 || self.fulcio_status.is_some()
@@ -1150,7 +1150,7 @@ impl RhtasArgs {
 
         if self.tsa_target.is_some()
             && (self.fulcio_uri.is_some()
-                || self.oidc_uri.is_some()
+                || !self.oidc_uri.is_empty()
                 || self.ctlog_uri.is_some()
                 || self.rekor_uri.is_some()
                 || self.fulcio_status.is_some()
@@ -1170,8 +1170,8 @@ impl RhtasArgs {
             if self.fulcio_status.is_none() {
                 self.fulcio_status = Some(String::from("Active"));
             }
-            if self.oidc_uri.is_none() {
-                self.oidc_uri = Some(String::from("https://oauth2.sigstore.dev/auth"));
+            if self.oidc_uri.is_empty() {
+                self.oidc_uri = vec![String::from("https://oauth2.sigstore.dev/auth")];
             }
         }
         if self.ctlog_target.is_some() {

@@ -57,7 +57,7 @@ export TSA_CERT=""
 export CTLOG_KEY=""
 export REKOR_KEY=""
 export FULCIO_URI=""
-export OIDC_URI=""
+OIDC_URIS=()
 export TSA_URI=""
 export CTLOG_URI=""
 export REKOR_URI=""
@@ -87,7 +87,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --oidc-uri)
-      OIDC_URI="$2"
+      OIDC_URIS+=("$2")
       shift
       shift
       ;;
@@ -216,6 +216,10 @@ echo "Adding trust root targets ..."
 # prepare targets
 if [ -n "${FULCIO_CERT}" ]; then
   echo "Adding Fulcio certificate chain ${FULCIO_CERT} ..."
+  OIDC_ARGS=()
+  for uri in "${OIDC_URIS[@]}"; do
+    OIDC_ARGS+=(--oidc-uri "$uri")
+  done
   tuftool rhtas \
     --follow \
     --root "${ROOT}" \
@@ -224,7 +228,7 @@ if [ -n "${FULCIO_CERT}" ]; then
     --key "${KEYDIR}/timestamp.pem" \
     --set-fulcio-target "${FULCIO_CERT}" \
     --fulcio-uri "${FULCIO_URI}" \
-    --oidc-uri "${OIDC_URI}" \
+    "${OIDC_ARGS[@]}" \
     --operator "${OPERATOR}" \
     --targets-expires "${METADATA_EXPIRATION}" \
     --targets-version 1 \

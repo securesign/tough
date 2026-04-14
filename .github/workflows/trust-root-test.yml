@@ -37,6 +37,8 @@ jobs:
             --fulcio-cert ./rhtas/test/fulcio-cert \
             --fulcio-uri "https://fulcio.rhtas" \
             --oidc-uri "https://oauth2.rhtas/auth" \
+            --oidc-uri "https://oauth2.sigstore.dev/auth" \
+            --oidc-uri "https://kubernetes.default.svc" \
             --tsa-cert ./rhtas/test/tsa-chain \
             --tsa-uri "https://tsa.rhtas" \
             --ctlog-key ./rhtas/test/ctfe-pubkey \
