@@ -9,7 +9,8 @@ RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal
 
 RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
-RUN cd /tmp/tuftool && cargo build --release --features fips
+RUN case "$(uname -m)" in s390x) export CFLAGS="-Wno-error=string-compare" ;; esac && \
+    cd /tmp/tuftool && cargo build --release --features fips
 
 FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:9e6e193bfc3596a84d2a32f42d6b1552398ec9735b9a4e893a0fc3c6fbccb381 as deploy
 
