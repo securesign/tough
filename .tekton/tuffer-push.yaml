@@ -15,8 +15,8 @@ metadata:
       "rpms.lock.yaml".pathChanged() || "ubi.repo".pathChanged() )
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: tough
-    appstudio.openshift.io/component: tuffer
+    appstudio.openshift.io/application: tough-v1-4
+    appstudio.openshift.io/component: tuffer-v1-4
     pipelines.appstudio.openshift.io/type: build
   name: tuffer-on-push
   namespace: rhtas-tenant
@@ -52,7 +52,7 @@ spec:
       value: pipelines/docker-build-oci-ta.yaml
     resolver: git
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tuffer
+    serviceAccountName: build-pipeline-tuffer-v1-4
   workspaces:
   - name: git-auth
     secret:

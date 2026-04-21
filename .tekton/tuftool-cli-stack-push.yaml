@@ -10,8 +10,8 @@ metadata:
       == "develop"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: cli-stacks
-    appstudio.openshift.io/component: tuftool-cli-stack
+    appstudio.openshift.io/application: cli-stacks-v1-4
+    appstudio.openshift.io/component: tuftool-cli-stack-v1-4
     pipelines.appstudio.openshift.io/type: build
   name: tuftool-cli-stack-on-push
   namespace: rhtas-tenant
@@ -43,7 +43,7 @@ spec:
       value: pipelines/docker-build-oci-ta.yaml
     resolver: git
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tuftool-cli-stack
+    serviceAccountName: build-pipeline-tuftool-cli-stack-v1-4
   workspaces:
   - name: git-auth
     secret:
