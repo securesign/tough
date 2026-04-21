@@ -4,12 +4,12 @@ on:
     paths-ignore:
       - "**.md"
       - ".github/dependabot.yml"
-    branches: [develop]
+    branches: [release-1.4]
   push:
     paths-ignore:
       - "**.md"
       - ".github/dependabot.yml"
-    branches: [develop]
+    branches: [release-1.4]
 
 env:
   # From-scratch builds with incremental compilation enabled adds unneeded performance and disk overhead.

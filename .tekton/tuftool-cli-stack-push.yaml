@@ -7,7 +7,7 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "develop"
+      == "release-1.4"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: cli-stacks-v1-4
@@ -18,7 +18,7 @@ metadata:
 spec:
   params:
   - name: release-version
-    value: 1.4.0
+    value: 1.4.1
   - name: dockerfile
     value: Dockerfile.cli-stack.rh
   - name: git-url
