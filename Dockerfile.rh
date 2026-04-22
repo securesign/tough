@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9@sha256:4d6b13b3eb34c77bb587b5f6cb22331f833fc27d72794afb4a8e0d9114d5b2b8 as builder
+FROM registry.redhat.io/ubi9@sha256:b07f5c75ad9669fa90a3aab2ccd4eb85d5a862265b09a695997ebe2be699bd20 as builder
 
 USER root
 
@@ -8,7 +8,7 @@ RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
 RUN cd /tmp/tuftool && cargo build --release
 
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:8805abe5b8a32c826d46926c069f20e6a7f854d59d5bd75c55e68278aea65ccc as deploy
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:fd3612ebe7968002122fb8c41df2cf9bd3f9916c573f7248113cdec1d6f4c245 as deploy
 
 COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 
