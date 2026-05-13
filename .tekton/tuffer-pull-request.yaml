@@ -18,7 +18,7 @@ metadata:
     appstudio.openshift.io/application: tough-v1-4
     appstudio.openshift.io/component: tuffer-v1-4
     pipelines.appstudio.openshift.io/type: build
-  name: tuffer-on-pull-request
+  name: tuffer-v1-4-on-pull-request
   namespace: rhtas-tenant
 spec:
   params:
