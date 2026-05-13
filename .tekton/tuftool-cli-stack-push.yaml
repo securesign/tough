@@ -7,18 +7,18 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "develop"
+      == "release-1.4"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: cli-stacks
-    appstudio.openshift.io/component: tuftool-cli-stack
+    appstudio.openshift.io/application: cli-stacks-v1-4
+    appstudio.openshift.io/component: tuftool-cli-stack-v1-4
     pipelines.appstudio.openshift.io/type: build
   name: tuftool-cli-stack-on-push
   namespace: rhtas-tenant
 spec:
   params:
   - name: release-version
-    value: 1.4.0
+    value: 1.4.1
   - name: dockerfile
     value: Dockerfile.cli-stack.rh
   - name: git-url
@@ -43,7 +43,7 @@ spec:
       value: pipelines/docker-build-oci-ta.yaml
     resolver: git
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tuftool-cli-stack
+    serviceAccountName: build-pipeline-tuftool-cli-stack-v1-4
   workspaces:
   - name: git-auth
     secret:

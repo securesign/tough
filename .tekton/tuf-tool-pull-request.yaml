@@ -8,22 +8,22 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "develop" && ( "Dockerfile.rh".pathChanged() || ".tekton/tuf-tool-pull-request.yaml".pathChanged()
+      == "release-1.4" && ( "Dockerfile.rh".pathChanged() || ".tekton/tuf-tool-pull-request.yaml".pathChanged()
       || "deny.toml".pathChanged() || "Cargo.toml".pathChanged() || "Cargo.lock".pathChanged()
       || "tough/***".pathChanged() || "tuftool/***".pathChanged() || "Makefile".pathChanged()
       || "trigger-konflux-builds.txt".pathChanged() || "rpms.lock.yaml".pathChanged()
       || "ubi.repo".pathChanged() )
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: tough
-    appstudio.openshift.io/component: tuf-tool
+    appstudio.openshift.io/application: tough-v1-4
+    appstudio.openshift.io/component: tuf-tool-v1-4
     pipelines.appstudio.openshift.io/type: build
   name: tuf-tool-on-pull-request
   namespace: rhtas-tenant
 spec:
   params:
   - name: release-version
-    value: "1.4.0"
+    value: "1.4.1"
   - name: git-url
     value: '{{source_url}}'
   - name: revision
@@ -64,7 +64,7 @@ spec:
       - name: pathInRepo
         value: 'pipelines/docker-build-multi-platform-oci-ta.yaml'
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tuf-tool
+    serviceAccountName: build-pipeline-tuf-tool-v1-4
   workspaces:
   - name: git-auth
     secret:
