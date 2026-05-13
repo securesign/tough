@@ -1,12 +1,26 @@
-FROM quay.io/securesign/cli-tuftool@sha256:389b7951afda0f205a758a4edff83c8dc05e3dc30fb167e1c82b84e4ef45cd1f AS build-amd64
+FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-amd64
+FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-arm64
+FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-ppc64le
+FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-s390x
 
 FROM registry.redhat.io/ubi9/go-toolset:9.7-1778604137@sha256:e06a6f4c85c3ca75f64127542449c9770fb885adfb592f987c576d268ac108de AS packager
 USER root
 RUN mkdir -p /binaries
 
-# Linux amd64 (tuftool is linux-only, single-platform)
 COPY --from=build-amd64 /usr/bin/tuftool /tmp/tuftool
 RUN tar -czf /binaries/tuftool_linux_amd64.tar.gz -C /tmp tuftool && \
+    rm /tmp/tuftool
+
+COPY --from=build-arm64 /usr/bin/tuftool /tmp/tuftool
+RUN tar -czf /binaries/tuftool_linux_arm64.tar.gz -C /tmp tuftool && \
+    rm /tmp/tuftool
+
+COPY --from=build-ppc64le /usr/bin/tuftool /tmp/tuftool
+RUN tar -czf /binaries/tuftool_linux_ppc64le.tar.gz -C /tmp tuftool && \
+    rm /tmp/tuftool
+
+COPY --from=build-s390x /usr/bin/tuftool /tmp/tuftool
+RUN tar -czf /binaries/tuftool_linux_s390x.tar.gz -C /tmp tuftool && \
     rm /tmp/tuftool
 
 # Final minimal image with all binaries
