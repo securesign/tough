@@ -18,7 +18,7 @@ metadata:
     appstudio.openshift.io/application: tough-v1-4
     appstudio.openshift.io/component: tuf-tool-v1-4
     pipelines.appstudio.openshift.io/type: build
-  name: tuf-tool-on-pull-request
+  name: tuf-tool-v1-4-on-pull-request
   namespace: rhtas-tenant
 spec:
   params:
