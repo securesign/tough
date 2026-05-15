@@ -43,7 +43,7 @@ indexmap = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 failure-server = { path = "../integ/failure-server" }
-hex-literal = "0.4"
+hex-literal = "1.0"
 httptest = "0.16"
 maplit = "1"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
