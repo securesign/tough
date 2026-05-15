@@ -59,7 +59,7 @@ walkdir = "2"
 indexmap = { version = "2.5.0", features = ["serde"] }
 
 rustls-webpki = { version = "0.102.1", features = ["alloc"] }
-thiserror = "1.0.30"
+thiserror = "2.0.0"
 base64 = { version = "0.22", default-features = false, features = ["std"] }
 futures-util = { version = "0.3.30", optional = true }
 tokio-util = { version = "0.7.10", features = ["io-util"] }
