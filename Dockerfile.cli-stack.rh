@@ -1,4 +1,4 @@
-FROM quay.io/securesign/cli-tuftool@sha256:90708a3e93d2b2889f9e377fbdd1b6cdd816202cc56a94c5f3b60ab82ed016f1 AS build-amd64
+FROM quay.io/securesign/cli-tuftool@sha256:96dd680be18d8d1c3eced452b9f455769fc5b94761dd72bb7cb76b1d3d19b637 AS build-amd64
 
 FROM registry.redhat.io/ubi9/go-toolset:9.7-1774618347@sha256:0f4f6f7868962aa75dddfe4230b664bdf77071e92c43c70c824c58450e37693f AS packager
 USER root
