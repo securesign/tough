@@ -42,7 +42,7 @@ use tough::{ExpirationEnforcement, RepositoryLoader};
 use url::Url;
 #[derive(Debug, Parser)]
 pub(crate) struct RhtasArgs {
-    /// Allow repo download for expired metadata
+    /// Allow repo download for expired metadata - test
     #[arg(long)]
     allow_expired_repo: bool,
 
