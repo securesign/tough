@@ -9,8 +9,10 @@ COPY --from=build-amd64 /usr/bin/tuftool /tmp/tuftool
 RUN tar -czf /binaries/tuftool_linux_amd64.tar.gz -C /tmp tuftool && \
     rm /tmp/tuftool
 
+RUN chmod -R a+rX /binaries
+
 # Final minimal image with all binaries
-FROM registry.redhat.io/ubi9/ubi-minimal@sha256:12db9874bd753eb98b1ab3d840e75de5d6842ac0604fbd68c012adefe97140be
+FROM registry.redhat.io/ubi9/ubi-micro:9.8@sha256:b498b3ea26111ab4b81d65139f2ebd2ef9a2abb7a4588b7fdcc54889f95e9caa
 
 LABEL description="Flat image containing tuftool CLI binary for CDN distribution"
 LABEL io.k8s.description="Flat image containing tuftool CLI binary for CDN distribution"
@@ -19,10 +21,9 @@ LABEL io.k8s.display-name="Tuftool CLI stack image for Red Hat Trusted Artifact 
 LABEL io.openshift.tags="tuftool trusted-artifact-signer cli-stack"
 LABEL summary="Provides tuftool CLI binary as tar.gz archive for CDN distribution."
 LABEL com.redhat.component="tuftool-cli-stack"
+LABEL name="rhtas/tuftool-cli-stack"
 
 COPY --from=packager /binaries/ /binaries/
-COPY licenses/LICENSE-APACHE /licenses/license.txt
-
-RUN chown -R root:0 /binaries && chmod -R g+r /binaries
+COPY --from=build-amd64 /licenses/ /licenses/
 
 USER 65532:65532
