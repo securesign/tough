@@ -660,12 +660,13 @@ impl RhtasArgs {
                 end = timestamp;
                 start = None;
             }
+            let key_details_value = key_details.unwrap();
             let new_ctlog = TransparencyLogInstance {
                 base_url: self.ctlog_uri.clone().unwrap(),
-                hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
+                hash_algorithm: RhtasArgs::key_details_to_hash_algorithm(key_details_value),
                 public_key: Some(PublicKey {
                     raw_bytes: Some(ctlog_raw_bytes),
-                    key_details: key_details.unwrap(),
+                    key_details: key_details_value,
                     valid_for: Some(TimeRange { start, end }),
                 }),
                 log_id: Some(LogId { key_id }),
@@ -749,12 +750,13 @@ impl RhtasArgs {
                 end = timestamp;
                 start = None;
             }
+            let key_details_value = key_details.unwrap();
             let new_tlog = TransparencyLogInstance {
                 base_url: self.rekor_uri.clone().unwrap(),
-                hash_algorithm: 1, // Sha2256 = 1 => HashAlgorithm::Sha2256 => "SHA2_256"
+                hash_algorithm: RhtasArgs::key_details_to_hash_algorithm(key_details_value),
                 public_key: Some(PublicKey {
                     raw_bytes: Some(rekor_raw_bytes),
-                    key_details: key_details.unwrap(),
+                    key_details: key_details_value,
                     valid_for: Some(TimeRange { start, end }),
                 }),
                 log_id: Some(LogId { key_id }),
@@ -1050,12 +1052,20 @@ impl RhtasArgs {
         Ok(())
     }
 
+    /// Maps `key_details` (`PublicKeyDetails` enum value) to the corresponding `hash_algorithm`
+    /// Returns: `HashAlgorithm` enum value (`1=SHA2_256`, `2=SHA2_384`, `3=SHA2_512`)
+    fn key_details_to_hash_algorithm(key_details: i32) -> i32 {
+        match key_details {
+            12 => 2, // PKIX_ECDSA_P384_SHA_384 -> SHA2_384
+            13 => 3, // PKIX_ECDSA_P521_SHA_512 -> SHA2_512
+            _ => 1,  // All others (P-256, ED25519, RSA-PSS variants) -> SHA2_256
+        }
+    }
+
     pub fn detect_public_key_details(
         key_path: &Path,
         checksum_algo: Option<&str>,
     ) -> io::Result<i32> {
-        let raw_algo_string = checksum_algo.unwrap_or("sha256");
-        let algo_to_use = raw_algo_string.to_lowercase();
         let mut file = File::open(key_path)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
@@ -1065,43 +1075,46 @@ impl RhtasArgs {
             let curve = group.curve_name();
             let key_type_id = match curve {
                 Some(Nid::X9_62_PRIME256V1) => {
+                    // P-256 requires SHA-256
+                    let algo_to_use = checksum_algo.unwrap_or("sha256").to_lowercase();
                     if algo_to_use == "sha256" {
-                        Ok(5)
+                        Ok(5) // PKIX_ECDSA_P256_SHA_256
                     } else {
                         Err(io::Error::new(
                             io::ErrorKind::InvalidData,
                             format!(
-                                "EC P-256 curve requires 'sha256' checksum,
+                                "EC P-256 curve requires 'sha256' checksum, \
                                 but '{algo_to_use}' was provided"
                             ),
                         ))
                     }
                 }
                 Some(Nid::SECP384R1) => {
+                    // P-384 requires SHA-384 (PKIX_ECDSA_P384_SHA_256 is deprecated)
+                    let algo_to_use = checksum_algo.unwrap_or("sha384").to_lowercase();
                     if algo_to_use == "sha384" {
-                        Ok(12)
-                    } else if algo_to_use == "sha256" {
-                        Ok(19)
+                        Ok(12) // PKIX_ECDSA_P384_SHA_384
                     } else {
                         Err(io::Error::new(
                             io::ErrorKind::InvalidData,
                             format!(
-                                "EC P-384 curve requires 'sha384' or 'sha256' checksum,
-                                but '{algo_to_use}' was provided"
+                                "EC P-384 curve requires 'sha384' checksum, \
+                                but '{algo_to_use}' was provided. \
+                                Note: PKIX_ECDSA_P384_SHA_256 is deprecated per sigstore-protobuf-specs v0.4"
                             ),
                         ))
                     }
                 }
                 Some(Nid::SECP521R1) => {
+                    // P-521 requires SHA-512
+                    let algo_to_use = checksum_algo.unwrap_or("sha512").to_lowercase();
                     if algo_to_use == "sha512" {
-                        Ok(13)
-                    } else if algo_to_use == "sha256" {
-                        Ok(20)
+                        Ok(13) // PKIX_ECDSA_P521_SHA_512
                     } else {
                         Err(io::Error::new(
                             io::ErrorKind::InvalidData,
                             format!(
-                                "EC P-521 curve requires 'sha512' or 'sha256' checksum,
+                                "EC P-521 curve requires 'sha512' checksum, \
                                 but '{algo_to_use}' was provided"
                             ),
                         ))
