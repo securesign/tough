@@ -44,15 +44,25 @@ spec:
     value: "true"
   - name: fips-check
     value: "true"
+  - name: path-context
+    value: .
+  - name: image-version
+    value: "0.0.1"
+  - name: build-platforms
+    value:
+      - linux/x86_64
+      - linux/arm64
+      - linux/ppc64le
+      - linux/s390x
   pipelineRef:
-    params:
-    - name: url
-      value: https://github.com/securesign/pipelines.git
-    - name: revision
-      value: main
-    - name: pathInRepo
-      value: pipelines/docker-build-oci-ta.yaml
     resolver: git
+    params:
+      - name: url
+        value: 'https://github.com/securesign/pipelines.git'
+      - name: revision
+        value: 'main'
+      - name: pathInRepo
+        value: 'pipelines/docker-build-multi-platform-oci-ta.yaml'
   taskRunTemplate:
     serviceAccountName: build-pipeline-tuf-tool-v1-4
   workspaces:
