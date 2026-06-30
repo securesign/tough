@@ -4,7 +4,7 @@ ENV CGO_ENABLED=1 \
 
 USER root
 
-RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo
+RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo clang clang-devel llvm-devel
 
 RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
