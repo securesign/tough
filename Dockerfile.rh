@@ -4,7 +4,8 @@ ENV CGO_ENABLED=1 \
 
 USER root
 
-RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo clang clang-devel llvm-devel
+RUN dnf install -y perl gcc openssl openssl-devel cmake gcc-c++ git curl-minimal unzip cyrus-sasl-devel rust cargo \
+    $(case "$(uname -m)" in ppc64le|s390x) echo clang ;; esac)
 
 RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
