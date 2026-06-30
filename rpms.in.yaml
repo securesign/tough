@@ -1,4 +1,21 @@
-packages: [perl, gcc, openssl, openssl-devel, cmake, gcc-c++, git, curl-minimal, unzip, cyrus-sasl-devel, rust, cargo, clang]
+packages:
+  - perl
+  - gcc
+  - openssl
+  - openssl-devel
+  - cmake
+  - gcc-c++
+  - git
+  - curl-minimal
+  - unzip
+  - cyrus-sasl-devel
+  - rust
+  - cargo
+  - name: clang
+    arches:
+      only:
+        - ppc64le
+        - s390x
 contentOrigin:
   repofiles: ["./ubi.repo"]
 arches: [x86_64, aarch64, ppc64le, s390x]
