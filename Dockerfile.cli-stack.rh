@@ -3,7 +3,7 @@ FROM --platform=linux/arm64   quay.io/securesign/cli-tuftool@sha256:78029b7e9be2
 FROM --platform=linux/ppc64le quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-ppc64le
 FROM --platform=linux/s390x   quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-s390x
 
-FROM registry.redhat.io/ubi9/go-toolset:9.7-1778504036@sha256:2c17ce45c735ad308240139d807eeb22f4499fd90e883634ba5a191779f1ff94 AS packager
+FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:9ef42b045aaabcaff14b76c75c086ec1479fbc7502c0587efdcedb2d721c46e5 AS packager
 USER root
 RUN mkdir -p /binaries
 
@@ -24,7 +24,7 @@ RUN tar -czf /binaries/tuftool_linux_s390x.tar.gz -C /tmp tuftool && \
     rm /tmp/tuftool
 
 # Final minimal image with all binaries
-FROM registry.redhat.io/ubi9/ubi-minimal@sha256:12db9874bd753eb98b1ab3d840e75de5d6842ac0604fbd68c012adefe97140be
+FROM registry.redhat.io/ubi9/ubi-minimal@sha256:463cae32c6f6f5594b11a5c22de275016bd8545ce58a6373388e8b24f13fc15c
 
 LABEL description="Flat image containing tuftool CLI binary for CDN distribution"
 LABEL io.k8s.description="Flat image containing tuftool CLI binary for CDN distribution"
