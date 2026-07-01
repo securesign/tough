@@ -1,7 +1,7 @@
-FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-amd64
-FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-arm64
-FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-ppc64le
-FROM quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-s390x
+FROM --platform=linux/amd64   quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-amd64
+FROM --platform=linux/arm64   quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-arm64
+FROM --platform=linux/ppc64le quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-ppc64le
+FROM --platform=linux/s390x   quay.io/securesign/cli-tuftool@sha256:78029b7e9be2ca8e49ffae56eb16e6d14b2a69e68e9fce7b652b3750c73c722f AS build-s390x
 
 FROM registry.redhat.io/ubi9/go-toolset:9.7-1778504036@sha256:2c17ce45c735ad308240139d807eeb22f4499fd90e883634ba5a191779f1ff94 AS packager
 USER root
