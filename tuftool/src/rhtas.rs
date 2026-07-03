@@ -21,7 +21,8 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use sigstore_protobuf_specs::dev::sigstore::{
     common::v1::{
-        DistinguishedName, LogId, PublicKey, TimeRange, X509Certificate, X509CertificateChain,
+        DistinguishedName, HashAlgorithm, LogId, PublicKey, TimeRange, X509Certificate,
+        X509CertificateChain,
     },
     trustroot::v1::{CertificateAuthority, TransparencyLogInstance, TrustedRoot},
 };
@@ -183,6 +184,11 @@ WARNING: `--allow-expired-repo` was passed; this is unsafe and will not establis
 =================================================================",
               path.as_ref().display());
 }
+
+/// Transparency log Merkle tree hash algorithm.
+/// All transparency logs (`Rekor`, `CTLog`) use `SHA2_256` for their Merkle trees,
+/// regardless of the signature hash algorithm (which is determined by key type).
+const TLOG_MERKLE_TREE_HASH: i32 = HashAlgorithm::Sha2256 as i32;
 
 #[allow(deprecated)]
 #[allow(clippy::clone_on_copy)]
@@ -663,7 +669,7 @@ impl RhtasArgs {
             let key_details_value = key_details.unwrap();
             let new_ctlog = TransparencyLogInstance {
                 base_url: self.ctlog_uri.clone().unwrap(),
-                hash_algorithm: RhtasArgs::key_details_to_hash_algorithm(key_details_value),
+                hash_algorithm: TLOG_MERKLE_TREE_HASH,
                 public_key: Some(PublicKey {
                     raw_bytes: Some(ctlog_raw_bytes),
                     key_details: key_details_value,
@@ -753,7 +759,7 @@ impl RhtasArgs {
             let key_details_value = key_details.unwrap();
             let new_tlog = TransparencyLogInstance {
                 base_url: self.rekor_uri.clone().unwrap(),
-                hash_algorithm: RhtasArgs::key_details_to_hash_algorithm(key_details_value),
+                hash_algorithm: TLOG_MERKLE_TREE_HASH,
                 public_key: Some(PublicKey {
                     raw_bytes: Some(rekor_raw_bytes),
                     key_details: key_details_value,
@@ -1050,16 +1056,6 @@ impl RhtasArgs {
             self.tsa_status = Some(String::from("Active"));
         }
         Ok(())
-    }
-
-    /// Maps `key_details` (`PublicKeyDetails` enum value) to the corresponding `hash_algorithm`
-    /// Returns: `HashAlgorithm` enum value (`1=SHA2_256`, `2=SHA2_384`, `3=SHA2_512`)
-    fn key_details_to_hash_algorithm(key_details: i32) -> i32 {
-        match key_details {
-            12 => 2, // PKIX_ECDSA_P384_SHA_384 -> SHA2_384
-            13 => 3, // PKIX_ECDSA_P521_SHA_512 -> SHA2_512
-            _ => 1,  // All others (P-256, ED25519, RSA-PSS variants) -> SHA2_256
-        }
     }
 
     pub fn detect_public_key_details(
