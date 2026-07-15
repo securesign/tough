@@ -1,6 +1,6 @@
 FROM quay.io/securesign/cli-tuftool@sha256:96dd680be18d8d1c3eced452b9f455769fc5b94761dd72bb7cb76b1d3d19b637 AS build-amd64
 
-FROM registry.redhat.io/ubi9/go-toolset:9.8@sha256:355b23fe885cf565c9313a7e98db742df0aec21456244e808942c56489594251 AS packager
+FROM registry.redhat.io/ubi9/go-toolset:9.8-1784090680@sha256:e1ff4f548dfca084c2318d11dccd7d30a75c81a3a4fd8abcebc42ea42dd683e8 AS packager
 USER root
 RUN mkdir -p /binaries
 
@@ -12,7 +12,7 @@ RUN tar -czf /binaries/tuftool_linux_amd64.tar.gz -C /tmp tuftool && \
 RUN chmod -R a+rX /binaries
 
 # Final minimal image with all binaries
-FROM registry.redhat.io/ubi9/ubi-micro:9.8@sha256:b498b3ea26111ab4b81d65139f2ebd2ef9a2abb7a4588b7fdcc54889f95e9caa
+FROM registry.redhat.io/ubi9/ubi-micro:9.8-1782840931@sha256:35de56a9413112f1474e392ebc35e0cf6f0fb484c8e8877bbae59b513694b41f
 
 LABEL description="Flat image containing tuftool CLI binary for CDN distribution"
 LABEL io.k8s.description="Flat image containing tuftool CLI binary for CDN distribution"
