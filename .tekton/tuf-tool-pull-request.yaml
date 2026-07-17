@@ -42,6 +42,8 @@ spec:
     value: "true"
   - name: dev-package-managers
     value: "true"
+  - name: ALLOW_CROSS_PLATFORM_IMAGES
+    value: "true"
   - name: fips-check
     value: "true"
   - name: path-context

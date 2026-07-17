@@ -36,6 +36,8 @@ spec:
     value: "false"
   - name: build-source-image
     value: "true"
+  - name: ALLOW_CROSS_PLATFORM_IMAGES
+    value: "true"
   pipelineRef:
     params:
     - name: url

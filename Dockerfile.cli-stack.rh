@@ -1,18 +1,30 @@
-FROM quay.io/securesign/cli-tuftool@sha256:96dd680be18d8d1c3eced452b9f455769fc5b94761dd72bb7cb76b1d3d19b637 AS build-amd64
+FROM --platform=linux/amd64   quay.io/securesign/cli-tuftool@sha256:7921b71805bfaa3c2d1837e519b38be92698a34c896184e9e3f0094f5aaecb10 AS build-amd64
+FROM --platform=linux/arm64   quay.io/securesign/cli-tuftool@sha256:346c344ababeac62ff4e68963e1e3fc876fb0115b1ed1b878e0819907bb2c856 AS build-arm64
+FROM --platform=linux/ppc64le quay.io/securesign/cli-tuftool@sha256:7af3e95e611449394b146e965feb4e93ac018b4e6bd994597af2adbb9d5aa607 AS build-ppc64le
+FROM --platform=linux/s390x   quay.io/securesign/cli-tuftool@sha256:02b41c70c2267dc4020db4fdacf50a288fb80645ba068bc2a7d39e3f7a94f6d4 AS build-s390x
 
-FROM registry.redhat.io/ubi9/go-toolset:9.8@sha256:355b23fe885cf565c9313a7e98db742df0aec21456244e808942c56489594251 AS packager
+FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:9ef42b045aaabcaff14b76c75c086ec1479fbc7502c0587efdcedb2d721c46e5 AS packager
 USER root
 RUN mkdir -p /binaries
 
-# Linux amd64 (tuftool is linux-only, single-platform)
 COPY --from=build-amd64 /usr/bin/tuftool /tmp/tuftool
 RUN tar -czf /binaries/tuftool_linux_amd64.tar.gz -C /tmp tuftool && \
     rm /tmp/tuftool
 
-RUN chmod -R a+rX /binaries
+COPY --from=build-arm64 /usr/bin/tuftool /tmp/tuftool
+RUN tar -czf /binaries/tuftool_linux_arm64.tar.gz -C /tmp tuftool && \
+    rm /tmp/tuftool
+
+COPY --from=build-ppc64le /usr/bin/tuftool /tmp/tuftool
+RUN tar -czf /binaries/tuftool_linux_ppc64le.tar.gz -C /tmp tuftool && \
+    rm /tmp/tuftool
+
+COPY --from=build-s390x /usr/bin/tuftool /tmp/tuftool
+RUN tar -czf /binaries/tuftool_linux_s390x.tar.gz -C /tmp tuftool && \
+    rm /tmp/tuftool
 
 # Final minimal image with all binaries
-FROM registry.redhat.io/ubi9/ubi-micro:9.8@sha256:b498b3ea26111ab4b81d65139f2ebd2ef9a2abb7a4588b7fdcc54889f95e9caa
+FROM registry.redhat.io/ubi9/ubi-minimal@sha256:463cae32c6f6f5594b11a5c22de275016bd8545ce58a6373388e8b24f13fc15c
 
 LABEL description="Flat image containing tuftool CLI binary for CDN distribution"
 LABEL io.k8s.description="Flat image containing tuftool CLI binary for CDN distribution"
@@ -21,9 +33,10 @@ LABEL io.k8s.display-name="Tuftool CLI stack image for Red Hat Trusted Artifact 
 LABEL io.openshift.tags="tuftool trusted-artifact-signer cli-stack"
 LABEL summary="Provides tuftool CLI binary as tar.gz archive for CDN distribution."
 LABEL com.redhat.component="tuftool-cli-stack"
-LABEL name="rhtas/tuftool-cli-stack"
 
 COPY --from=packager /binaries/ /binaries/
-COPY --from=build-amd64 /licenses/ /licenses/
+COPY licenses/LICENSE-APACHE /licenses/license.txt
+
+RUN chown -R root:0 /binaries && chmod -R g+r /binaries
 
 USER 65532:65532

@@ -9,6 +9,7 @@ on:
 env:
   # From-scratch builds with incremental compilation enabled adds unneeded performance and disk overhead.
   CARGO_INCREMENTAL: "0"
+  CMAKE_GENERATOR: Ninja
 
 jobs:
   build:
