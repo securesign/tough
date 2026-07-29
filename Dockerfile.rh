@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:9ef42b045aaabcaff14b76c75c086ec1479fbc7502c0587efdcedb2d721c46e5 as builder
+FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:5e231f8c5eab7812a1e2c701ce48c63eb3bb02dc9f372d8fbb59e3e1cd9c493c as builder
 ENV CGO_ENABLED=1 \
     GOEXPERIMENT=strictfipsruntime
 
@@ -12,7 +12,7 @@ COPY . /tmp/tuftool
 RUN case "$(uname -m)" in s390x) export CFLAGS="-Wno-error=string-compare" ;; esac && \
     cd /tmp/tuftool && cargo build --release --features fips
 
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:8bf0e8f20737e9c8a68c8a498299e9504ab397b1b1f2837acb2fef12ec698f0e as deploy
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:5bc32620d0cbdfd788723448efa1c0c04e9859c0e33f9d5545329a4550edc7ab as deploy
 
 COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 COPY licenses/LICENSE-APACHE /licenses/license.txt
