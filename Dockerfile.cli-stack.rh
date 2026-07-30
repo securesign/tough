@@ -3,7 +3,7 @@ FROM --platform=linux/arm64   quay.io/securesign/cli-tuftool@sha256:0e95ca84c8e3
 FROM --platform=linux/ppc64le quay.io/securesign/cli-tuftool@sha256:4449af1e0b61080e6d04b477bc0e6d8be9bdccd5157efeee32a693dbb216aee0 AS build-ppc64le
 FROM --platform=linux/s390x   quay.io/securesign/cli-tuftool@sha256:a25fec0f8089e9250c12e58912631f096399517df53d99fe70b4306382f5d35b AS build-s390x
 
-FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:5e231f8c5eab7812a1e2c701ce48c63eb3bb02dc9f372d8fbb59e3e1cd9c493c AS packager
+FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:272a3dd990bba320c2e246119a0019d10d627d0104938d5db77ba5ab3ae3a51d AS packager
 USER root
 RUN mkdir -p /binaries
 
