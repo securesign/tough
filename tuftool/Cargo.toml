@@ -42,13 +42,13 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-
 rustls = "0.23"
 serde = "1"
 serde_json = "1"
-serial_test = "3.1.1"
+serial_test = "4.0.0"
 simplelog = "0.12"
 
 sigstore_protobuf_specs = { version = "0.4", default-features = false, optional = true }
 
 snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
-pem = "3.0.4"
+pem = "4.0.0"
 prost-types = "0.13.5"
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
@@ -60,7 +60,7 @@ walkdir = "2"
 indexmap = { version = "2.5.0", features = ["serde"] }
 
 rustls-webpki = { version = "0.102.1", features = ["alloc"] }
-thiserror = "1.0.30"
+thiserror = "2.0.0"
 base64 = { version = "0.22", default-features = false, features = ["std"] }
 futures-util = { version = "0.3.30", optional = true }
 tokio-util = { version = "0.7.10", features = ["io-util"] }
