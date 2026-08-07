@@ -30,7 +30,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: hermetic
-    value: "false"
+    value: "true"
   - name: build-source-image
     value: "true"
   - name: ALLOW_CROSS_PLATFORM_IMAGES
