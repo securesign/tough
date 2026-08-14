@@ -21,7 +21,7 @@ globset = { version = "0.4" }
 hex = "0.4"
 log = "0.4"
 olpc-cjson = { version = "0.1", path = "../olpc-cjson" }
-pem = "3"
+pem = "4"
 percent-encoding = "2"
 reqwest = { version = "0.12", optional = true, default-features = false, features = ["stream"] }
 rustls = "0.23"
@@ -43,7 +43,7 @@ indexmap = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 failure-server = { path = "../integ/failure-server" }
-hex-literal = "0.4"
+hex-literal = "1.0"
 httptest = "0.16"
 maplit = "1"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
