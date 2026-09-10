@@ -18,6 +18,6 @@ fips = ["tough/fips"]
 tough = { version = "0.19", path = "../tough", features = ["http"] }
 aws-sdk-ssm = "1"
 aws-config = { version = "1", default-features = false, features = ["credentials-process"] }
-aws-smithy-experimental = { version = "0.1", features = ["crypto-aws-lc"] }
-snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
+aws-smithy-experimental = { version = "0.3", features = ["crypto-aws-lc"] }
+snafu = { version = "0.9", features = ["backtraces-impl-backtrace-crate"] }
 tokio = { version = "1", features = ["fs", "io-util", "time", "macros", "rt-multi-thread"] }
