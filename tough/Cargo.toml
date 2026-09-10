@@ -23,22 +23,22 @@ log = "0.4"
 olpc-cjson = { version = "0.1", path = "../olpc-cjson" }
 pem = "3"
 percent-encoding = "2"
-reqwest = { version = "0.12", optional = true, default-features = false, features = ["stream"] }
+reqwest = { version = "0.13", optional = true, default-features = false, features = ["stream"] }
 rustls = "0.23"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_plain = "1"
-snafu = { version = "0.8", features = ["futures"] }
+snafu = { version = "0.9", features = ["futures"] }
 tempfile = "3"
 tokio = { version = "1", default-features = false, features = ["io-util", "sync", "fs", "rt", "time"] }
 tokio-util = { version = "0.7", features = ["io"] }
-typed-path = "0.9"
+typed-path = "0.12"
 # pinned due to aws-lc-rs locked to this version
 # https://github.com/aws/aws-lc-rs/issues/468
-untrusted = "0.7.1"
+untrusted = "0.9.0"
 url = "2"
 walkdir = "2"
-itertools = "0.13.0"
+itertools = "0.15.0"
 indexmap = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
