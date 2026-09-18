@@ -37,19 +37,19 @@ maplit = "1"
 olpc-cjson = { version = "0.1", path = "../olpc-cjson" }
 openssl = { version = "0.10.40", features = ["vendored"] }
 rayon = "1"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-tls-native-roots"] }
 rustls = "0.23"
 serde = "1"
 serde_json = "1"
 serial_test = "3.1.1"
 simplelog = "0.12"
 
-sigstore_protobuf_specs = { version = "0.4", default-features = false, optional = true }
+sigstore_protobuf_specs = { version = "0.5", default-features = false, optional = true }
 
-snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
-sha2 = "0.9"
+snafu = { version = "0.9", features = ["backtraces-impl-backtrace-crate"] }
+sha2 = "0.11"
 pem = "3.0.4"
-prost-types = "0.13.5"
+prost-types = "0.14.0"
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 tough = { version = "0.19", path = "../tough", features = ["http"] }
@@ -59,13 +59,13 @@ url = "2"
 walkdir = "2"
 indexmap = { version = "2.5.0", features = ["serde"] }
 
-rustls-webpki = { version = "0.102.1", features = ["alloc"] }
+rustls-webpki = { version = "0.103.0", features = ["alloc"] }
 thiserror = "1.0.30"
-base64 = { version = "0.22", default-features = false, features = ["std"] }
+base64 = { version = "0.23", default-features = false, features = ["std"] }
 futures-util = { version = "0.3.30", optional = true }
 tokio-util = { version = "0.7.10", features = ["io-util"] }
 tracing = "0.1.31"
-rstest = "0.22.0"
+rstest = "0.27.0"
 regex = { version = "1.5.5", optional = true }
 pki-types = { package = "rustls-pki-types", version = "1.12", default-features = false }
 
