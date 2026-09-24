@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:e1ff4f548dfca084c2318d11dccd7d30a75c81a3a4fd8abcebc42ea42dd683e8 as builder
+FROM registry.redhat.io/ubi9/go-toolset:latest@sha256:0a4666f7a4eb0644c97a73cba198eb268691b270d97831822689e7a2088f87be as builder
 ENV CGO_ENABLED=1 \
     GOEXPERIMENT=strictfipsruntime
 
@@ -10,7 +10,7 @@ RUN mkdir /tmp/tuftool
 COPY . /tmp/tuftool
 RUN cd /tmp/tuftool && cargo build --release --features fips
 
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:00e592b8a4c30632bab23d7548f12b1f51a9b8b5a358b986069d6846ac908e6b as deploy
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:a4b9ec09b1e790a53ef25b7777c539976abe519248264298e5194dcbceac8c31 as deploy
 
 COPY --from=builder /tmp/tuftool/target/release/tuftool /usr/bin/
 COPY licenses/LICENSE-APACHE /licenses/license.txt
