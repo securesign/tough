@@ -157,7 +157,7 @@ impl Display for TransportError {
 
 impl Error for TransportError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source.as_ref().map(|e| e.as_ref() as &(dyn Error))
+        self.source.as_ref().map(|e| e.as_ref() as &dyn Error)
     }
 }
 

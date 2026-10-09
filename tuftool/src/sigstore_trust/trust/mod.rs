@@ -27,6 +27,7 @@ pub trait TrustRoot {
     fn ctfe_keys(&self) -> crate::sigstore_trust::errors::Result<Vec<&[u8]>>;
 }
 
+#[allow(dead_code)]
 #[allow(clippy::doc_markdown)]
 /// A `ManualTrustRoot` is a [TrustRoot] with out-of-band trust materials.
 /// As it does not establish a trust root with TUF, users must initialize its materials themselves.

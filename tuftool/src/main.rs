@@ -174,7 +174,7 @@ where
             if tx.blocking_send(entry).is_err() {
                 // Receiver error'ed out
                 break;
-            };
+            }
         }
         Ok(())
     });
