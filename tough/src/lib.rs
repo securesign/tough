@@ -791,7 +791,7 @@ async fn load_root<R: AsRef<[u8]>>(
                 root = new_root;
 
                 // 1.7. Repeat steps 1.1 to 1.7.
-                continue;
+                //continue;
             }
         }
     }
