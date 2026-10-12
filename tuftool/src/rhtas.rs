@@ -493,7 +493,7 @@ impl RhtasArgs {
         sigstore_trust_bundle
             .save_trusted_root_to_file(&trusted_root_path)
             .map_err(|e| error::Error::FileOpen {
-                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                source: std::io::Error::other(e.to_string()),
                 path: trusted_root_path.clone(),
                 backtrace: snafu::Backtrace::new(),
             })?;
@@ -502,7 +502,7 @@ impl RhtasArgs {
         sigstore_trust_bundle
             .save_signing_config_to_file(&signing_config_path)
             .map_err(|e| error::Error::FileOpen {
-                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+                source: std::io::Error::other(e.to_string()),
                 path: signing_config_path.clone(),
                 backtrace: snafu::Backtrace::new(),
             })?;

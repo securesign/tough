@@ -297,7 +297,7 @@ impl TargetsEditor {
             {
                 // Key isn't present yet, so we need to add it
                 delegations.keys.insert(keyid.clone(), key);
-            };
+            }
             keyids.push(keyid.clone());
         }
 
@@ -382,7 +382,7 @@ impl TargetsEditor {
                 delegated_role
                     .targets
                     .as_ref()
-                    .map_or(true, |targets| targets.signed.delegated_role(role).is_err())
+                    .is_none_or(|targets| targets.signed.delegated_role(role).is_err())
             });
         }
         Ok(self)

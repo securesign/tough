@@ -175,7 +175,7 @@ impl UpdateArgs {
                     .add_target(target_name, target)
                     .context(error::DelegationStructureSnafu)?;
             }
-        };
+        }
 
         // If a `Targets` metadata needs to be updated
         if self.role.is_some() && self.indir.is_some() {
@@ -252,7 +252,7 @@ impl UpdateArgs {
                     indir: &targets_indir,
                     outdir: targets_outdir,
                 })?;
-        };
+        }
 
         // Write the metadata to the outdir
         signed_repo
