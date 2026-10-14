@@ -22,7 +22,7 @@ aws-config = { version = "1", default-features = false, features = ["credentials
 aws-smithy-experimental = { version = "0.1", features = ["crypto-aws-lc"] }
 snafu = { version = "0.8", features = ["backtraces-impl-backtrace-crate"] }
 tokio = { version = "1", features = ["fs", "io-util", "time", "macros", "rt-multi-thread"] }
-pem = "3"
+pem = "4"
 
 [dev-dependencies]
 aws-smithy-runtime = { version = "1", features = ["test-util"] }
