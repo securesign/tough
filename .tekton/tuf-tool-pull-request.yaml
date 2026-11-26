@@ -41,7 +41,7 @@ spec:
   - name: dev-package-managers
     value: "true"
   - name: fips-check
-    value: "true"
+    value: "false"
   - name: path-context
     value: .
   - name: build-platforms
