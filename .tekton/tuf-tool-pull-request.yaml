@@ -22,8 +22,6 @@ metadata:
   namespace: rhtas-tenant
 spec:
   params:
-  - name: release-version
-    value: "1.4.5"
   - name: git-url
     value: '{{source_url}}'
   - name: revision
@@ -43,11 +41,9 @@ spec:
   - name: dev-package-managers
     value: "true"
   - name: fips-check
-    value: "true"
+    value: "false"
   - name: path-context
     value: .
-  - name: image-version
-    value: "0.0.1"
   - name: build-platforms
     value:
       - linux/x86_64
